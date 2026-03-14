@@ -1929,10 +1929,10 @@ async function removeSession(id, ownerEmail){
     }catch(_){ return todayDDMMYYYY(); }
   }
 
-  function renderHistory(){
+  async function renderHistory(){
     const list = document.getElementById('historyList');
     if (!list) return;
-    const items = readHistory();
+    const items = await readHistory();
     if (!items.length){
       list.innerІHTML = '<div class="muted">Поки що порожньо. Натисни «Зберегти поточного».</div>';
       return;
@@ -1941,18 +1941,25 @@ async function removeSession(id, ownerEmail){
       '<div class="row">'+
         '<div class="meta"><div class="name">'+ (s.name||'Безіменний') +'</div><div class="date">'+ fmtDate(s.savedAt) +'</div></div>'+
         '<div class="actions">'+
-          '<button class="btn" data-act="load" data-id="'+s.id+'">Відкрити</button>'+
-          '<button class="btn" data-act="delete" data-id="'+s.id+'">Видалити</button>'+
+'<button class="btn" data-act="load" data-id="'+s.patientId+'" data-owner="'+(s.ownerEmail || '')+'">Відкрити</button>'+
+'<button class="btn" data-act="delete" data-id="'+s.patientId+'" data-owner="'+(s.ownerEmail || '')+'">Видалити</button>'+
         '</div>'+
       '</div>'
     )).join('');
-    list.querySelectorAll('button[data-act="load"]').forEach(b=> b.addEventListener('click', (e)=>{
-      loadSession(e.currentTarget.getAttribute('data-id'));
+list.querySelectorAll('button[data-act="load"]').forEach(b => b.addEventListener('click', async (e) => {
+  await loadSession(
+  e.currentTarget.getAttribute('data-id'),
+  e.currentTarget.getAttribute('data-owner')
+);
       document.body.classList.remove('history-open');
     }));
-    list.querySelectorAll('button[data-act="delete"]').forEach(b=> b.addEventListener('click', (e)=>{
-      if (confirm('Видалити цей запис?')) removeSession(e.currentTarget.getAttribute('data-id'));
-    }));
+list.querySelectorAll('button[data-act="delete"]').forEach(b => b.addEventListener('click', async (e) => {
+  if (confirm('Видалити цей запис?')) {
+  await removeSession(
+    e.currentTarget.getAttribute('data-id'),
+    e.currentTarget.getAttribute('data-owner')
+  );
+}    }));
   }
 
   document.addEventListener('DOMContentLoaded', function(){
