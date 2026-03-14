@@ -1938,10 +1938,10 @@ async function writeHistory(arr){
     const saveBtn = document.getElementById('btnHistorySave');
     const backdrop = document.getElementById('historyBackdrop');
 
-    if (openBtn) openBtn.addEventListener('click', function(){
-      document.body.classList.add('history-open');
-      renderHistory();
-    });
+if (openBtn) openBtn.addEventListener('click', async function(){
+  document.body.classList.add('history-open');
+  await renderHistory();
+});
     if (closeBtn) closeBtn.addEventListener('click', function(){ document.body.classList.remove('history-open'); });
     if (backdrop) backdrop.addEventListener('click', function(){ document.body.classList.remove('history-open'); });
     if (saveBtn) saveBtn.addEventListener('click', function(){ saveCurrentToHistory(); });
