@@ -1950,27 +1950,26 @@ async function renderHistory(){
     '</div>'
   )).join('');
 
-  list.querySelectorAll('button[data-act="load"]').forEach(b =>
-    b.addEventListener('click', async (e) => {
-      await loadSession(
-        e.currentTarget.getAttribute('data-id'),
-        e.currentTarget.getAttribute('data-owner')
-      );
-      document.body.classList.remove('history-open');
-    })
-  );
+ list.querySelectorAll('button[data-act="load"]').forEach(b =>
+  b.addEventListener('click', async (e) => {
+    await loadSession(
+      e.currentTarget.getAttribute('data-id'),
+      e.currentTarget.getAttribute('data-owner')
+    );
+    document.body.classList.remove('history-open');
+  })
+);
 
-  list.querySelectorAll('button[data-act="delete"]').forEach(b =>
-    b.addEventListener('click', async (e) => {
-      if (!confirm('Видалити цей запис?')) return;
-      await removeSession(
-        e.currentTarget.getAttribute('data-id'),
-        e.currentTarget.getAttribute('data-owner')
-      );
-    })
-  );
-}
+list.querySelectorAll('button[data-act="delete"]').forEach(b =>
+  b.addEventListener('click', async (e) => {
+    if (!confirm('Видалити цей запис?')) return;
 
+    await removeSession(
+      e.currentTarget.getAttribute('data-id'),
+      e.currentTarget.getAttribute('data-owner')
+    );
+  })
+);
 
   document.addEventListener('DOMContentLoaded', function(){
     const openBtn = document.getElementById('btnHistory');
