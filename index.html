@@ -69,6 +69,12 @@ tr.lesion-sub td{ padding-top: 6px; padding-bottom: 10px; border-top: none; }
 /* INV single-line input sizing */
 .inv-line{ display:inline-block; width:55%; min-width:320px; max-width:100%; }
 </style>
+
+<script>
+window.API_BASE = window.API_BASE || "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
+window.USE_REMOTE_API = true;
+</script>
+
 </head>
 <body>
 
@@ -133,6 +139,7 @@ tr.lesion-sub td{ padding-top: 6px; padding-bottom: 10px; border-top: none; }
   <li>За потреби відкоригуй полігони/маркери, кольори та зміщення.</li>
   <li>Переглянь сформований звіт праворуч і роздрукуй.</li>
 </ol>
+
 
 <h3>📁 Вибір папки для збереження</h3>
 <ul>
@@ -914,15 +921,88 @@ function buildTable(){
 }
 buildTable();
 
-function updateVol(){ const tr=parseFloat(state.prostate.tr||0), ap=parseFloat(state.prostate.ap||0), cc=parseFloat(state.prostate.cc||0); const vol=0.52*tr*ap*cc/1000; document.getElementById('volOut').textContent=(vol>0?vol.toFixed(1)+' мл':'—'); }
+const __volDebounce = { t: null };
+
+function localVolumeCalc(){
+  const tr=parseFloat(state.prostate.tr||0), ap=parseFloat(state.prostate.ap||0), cc=parseFloat(state.prostate.cc||0);
+  return 0.52*tr*ap*cc/1000;
+}
+
+async function apiPost(path, payload){
+  if (!window.USE_REMOTE_API || !window.API_BASE || /REPLACE_WITH_YOUR_WORKER/.test(window.API_BASE)) {
+    throw new Error('API_BASE не налаштовано');
+  }
+  const res = await fetch(String(window.API_BASE).replace(/\/$/, '') + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json().catch(()=>({ ok:false, error:'Некоректна відповідь API' }));
+  if (!res.ok || !data.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return data;
+}
+
+function collectApiPayload(){
+  const lesions = [];
+  for (let n=1; n<=5; n++){
+    const L = state.lesions && state.lesions[String(n)] ? state.lesions[String(n)] : {};
+    lesions.push({
+      id: n,
+      sectors: Array.isArray(L.sectors) ? L.sectors.slice() : [],
+      tr: L.tr || '', ap: L.ap || '', cc: L.cc || '',
+      t2: L.t2 || '', dwi: L.dwi || '', dce: L.dce || '',
+      sv: L.sv || '', ece: L.ece || '', inv: L.inv || ''
+    });
+  }
+  return {
+    pib: (document.getElementById('pib')?.value || state.pib || '').trim(),
+    prostate: {
+      tr: parseFloat(state.prostate?.tr || 0) || 0,
+      ap: parseFloat(state.prostate?.ap || 0) || 0,
+      cc: parseFloat(state.prostate?.cc || 0) || 0
+    },
+    lesions
+  };
+}
+
+async function updateVolRemote(){
+  const payload = {
+    tr: parseFloat(state.prostate.tr||0)||0,
+    ap: parseFloat(state.prostate.ap||0)||0,
+    cc: parseFloat(state.prostate.cc||0)||0
+  };
+  try{
+    const data = await apiPost('/api/volume', payload);
+    document.getElementById('volOut').textContent = (data.volume>0 ? data.volume.toFixed(1)+' мл' : '—');
+  }catch(_){
+    const vol = localVolumeCalc();
+    document.getElementById('volOut').textContent=(vol>0?vol.toFixed(1)+' мл':'—');
+  }
+}
+
+function updateVol(){
+  clearTimeout(__volDebounce.t);
+  __volDebounce.t = setTimeout(updateVolRemote, 250);
+}
+
 ['p_tr','p_ap','p_cc'].forEach(id=>{ const key=id.split('_')[1]; const el=document.getElementById(id); el.value=state.prostate[key]||''; el.addEventListener('input', ()=>{ state.prostate[key]=el.value; save(); updateVol(); draw(); }); });
 updateVol();
 
 // Report generation
-document.getElementById('makeReport').addEventListener('click', async()=>{ await buildReportImages(); buildReportText(); document.getElementById('report').style.display='block'; alert('Звіт зібрано. Натисни «Друк» для PDF.'); });
-document.getElementById('printBtn').addEventListener('click', async()=>{ if(document.getElementById('reportImg').src===''){ await buildReportImages(); buildReportText(); document.getElementById('report').style.display='block'; } window.print(); });
+document.getElementById('makeReport').addEventListener('click', async()=>{ await buildReportImages(); await buildReportText(); document.getElementById('report').style.display='block'; alert('Звіт зібрано. Натисни «Друк» для PDF.'); });
+document.getElementById('printBtn').addEventListener('click', async()=>{ if(document.getElementById('reportImg').src===''){ await buildReportImages(); await buildReportText(); document.getElementById('report').style.display='block'; } window.print(); });
 
-function buildReportText(){
+async function buildReportText(){
+  try{
+    const data = await apiPost('/api/report', collectApiPayload());
+    document.getElementById('reportText').innerHTML = data.html || '';
+    if (typeof data.volume === 'number') {
+      document.getElementById('volOut').textContent = (data.volume>0 ? data.volume.toFixed(1)+' мл' : '—');
+    }
+    return;
+  }catch(err){
+    console.warn('API report fallback to local builder:', err);
+  }
   const P = state.prostate||{};
   const tr = parseFloat(P.tr||0), ap = parseFloat(P.ap||0), cc = parseFloat(P.cc||0);
   const vol = 0.52*tr*ap*cc/1000; // cm3
@@ -2483,6 +2563,12 @@ document.addEventListener('DOMContentLoaded', () => {
       </style>
     `;
     var html = `<!doctype html><html><head><meta charset="utf-8">`+css+`
+
+
+<script>
+window.API_BASE = window.API_BASE || "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
+window.USE_REMOTE_API = true;
+</script>
 
 </head>
     <body>
