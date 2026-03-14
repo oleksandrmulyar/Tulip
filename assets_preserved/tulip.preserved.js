@@ -1989,6 +1989,7 @@ if (saveBtn) saveBtn.addEventListener('click', async function(){ await saveCurre
 const pib = document.getElementById('pib');
 if (pib){
   pib.addEventListener('change', async function(){
+    // If there's already a history entry with previous name, saving will overwrite same-name entry
     await saveCurrentToHistory();
   });
 }
