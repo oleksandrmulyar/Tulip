@@ -2060,3 +2060,6 @@ async function savePatientRemote(payload) {
   });
   return await res.json();
 }
+
+
+})();
