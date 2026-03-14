@@ -1988,3 +1988,31 @@ document.addEventListener('DOMContentLoaded', function(){
     }, {capture:true}); // capture to override earlier handlers
   }
 });
+
+async function getHistoryRemote() {
+  const res = await fetch(window.API_BASE + '/api/history/list', {
+    method: 'GET',
+    credentials: 'include'
+  });
+  return await res.json();
+}
+
+async function loadPatientRemote(patientId, ownerEmail) {
+  const res = await fetch(window.API_BASE + '/api/patient/get', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ patientId, ownerEmail })
+  });
+  return await res.json();
+}
+
+async function savePatientRemote(payload) {
+  const res = await fetch(window.API_BASE + '/api/patient/save', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return await res.json();
+}
