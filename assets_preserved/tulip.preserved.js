@@ -1929,38 +1929,48 @@ async function removeSession(id, ownerEmail){
     }catch(_){ return todayDDMMYYYY(); }
   }
 
-  async function renderHistory(){
-    const list = document.getElementById('historyList');
-    if (!list) return;
-    const items = await readHistory();
-    if (!items.length){
-      list.innerІHTML = '<div class="muted">Поки що порожньо. Натисни «Зберегти поточного».</div>';
-      return;
-    }
-    list.innerHTML = items.map(s => (
-      '<div class="row">'+
-        '<div class="meta"><div class="name">'+ (s.name||'Безіменний') +'</div><div class="date">'+ fmtDate(s.savedAt) +'</div></div>'+
-        '<div class="actions">'+
-'<button class="btn" data-act="load" data-id="'+s.patientId+'" data-owner="'+(s.ownerEmail || '')+'">Відкрити</button>'+
-'<button class="btn" data-act="delete" data-id="'+s.patientId+'" data-owner="'+(s.ownerEmail || '')+'">Видалити</button>'+
-        '</div>'+
-      '</div>'
-    )).join('');
-list.querySelectorAll('button[data-act="load"]').forEach(b => b.addEventListener('click', async (e) => {
-  await loadSession(
-  e.currentTarget.getAttribute('data-id'),
-  e.currentTarget.getAttribute('data-owner')
-);
-      document.body.classList.remove('history-open');
-    }));
-list.querySelectorAll('button[data-act="delete"]').forEach(b => b.addEventListener('click', async (e) => {
-  if (confirm('Видалити цей запис?')) {
-  await removeSession(
-    e.currentTarget.getAttribute('data-id'),
-    e.currentTarget.getAttribute('data-owner')
-  );
-}    }));
+async function renderHistory(){
+  const list = document.getElementById('historyList');
+  if (!list) return;
+
+  const items = await readHistory();
+
+  if (!items.length){
+    list.innerHTML = '<div class="muted">Поки що порожньо. Натисни «Зберегти поточного».</div>';
+    return;
   }
+
+  list.innerHTML = items.map(s => (
+    '<div class="row">'+
+      '<div class="meta"><div class="name">'+ (s.pib || s.name || 'Безіменний') +'</div><div class="date">'+ fmtDate(s.updatedAt || s.savedAt) +'</div></div>'+
+      '<div class="actions">'+
+        '<button class="btn" data-act="load" data-id="'+ s.patientId +'" data-owner="'+ (s.ownerEmail || '') +'">Відкрити</button>'+
+        '<button class="btn" data-act="delete" data-id="'+ s.patientId +'" data-owner="'+ (s.ownerEmail || '') +'">Видалити</button>'+
+      '</div>'+
+    '</div>'
+  )).join('');
+
+  list.querySelectorAll('button[data-act="load"]').forEach(b =>
+    b.addEventListener('click', async (e) => {
+      await loadSession(
+        e.currentTarget.getAttribute('data-id'),
+        e.currentTarget.getAttribute('data-owner')
+      );
+      document.body.classList.remove('history-open');
+    })
+  );
+
+  list.querySelectorAll('button[data-act="delete"]').forEach(b =>
+    b.addEventListener('click', async (e) => {
+      if (!confirm('Видалити цей запис?')) return;
+      await removeSession(
+        e.currentTarget.getAttribute('data-id'),
+        e.currentTarget.getAttribute('data-owner')
+      );
+    })
+  );
+}
+
 
   document.addEventListener('DOMContentLoaded', function(){
     const openBtn = document.getElementById('btnHistory');
