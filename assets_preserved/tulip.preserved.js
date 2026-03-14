@@ -1765,6 +1765,37 @@ window.USE_REMOTE_API = true;
 
 (function(){
   const LS_KEY = 'pirads_history_v1';
+    const LS_USER_EMAIL_KEY = 'pirads_user_email_v1';
+  const ADMIN_EMAIL = 'oleksandrmulyar@gmail.com';
+
+  function normalizeEmail(v){ return String(v||'').trim().toLowerCase(); }
+  function isAdminEmail(email){ return normalizeEmail(email) === ADMIN_EMAIL; }
+  function getViewerEmail(){
+    const fromField = document.getElementById('historyUserEmail')?.value;
+    const raw = fromField || localStorage.getItem(LS_USER_EMAIL_KEY) || '';
+    return normalizeEmail(raw);
+  }
+  function persistViewerEmail(email){
+    const v = normalizeEmail(email);
+    if (!v) return false;
+    localStorage.setItem(LS_USER_EMAIL_KEY, v);
+    const el = document.getElementById('historyUserEmail');
+    if (el && el.value !== v) el.value = v;
+    return true;
+  }
+  function refreshHistoryScopeNote(){
+    const note = document.getElementById('historyScopeNote');
+    if (!note) return;
+    const email = getViewerEmail();
+    if (!email){
+      note.textContent = 'Вкажіть email лікаря. Доступ буде тільки до власних пацієнтів, для admin — до всіх.';
+      return;
+    }
+    note.textContent = isAdminEmail(email)
+      ? 'Режим: адміністратор (доступ до всіх пацієнтів).'
+      : 'Режим: користувач (доступ лише до власних пацієнтів).';
+  }
+
   function nowISO(){ return new Date().toISOString(); }
   function todayDDMMYYYY(){
     const d = new Date(); const dd=String(d.getDate()).padStart(2,'0');
@@ -1772,8 +1803,10 @@ window.USE_REMOTE_API = true;
     return dd+'.'+mm+'.'+yy;
   }
 async function readHistory(){
+    const viewerEmail = getViewerEmail();
+  if (!viewerEmail) return [];
   try {
-    const res = await getHistoryRemote();
+    const res = await getHistoryRemote(viewerEmail);
     return res && res.ok && Array.isArray(res.items) ? res.items : [];
   } catch(_) {
     return [];
@@ -1880,10 +1913,19 @@ function uuid(){ return 'h-'+Math.random().toString(36).slice(2)+Date.now().toSt
   }
 
 async function saveCurrentToHistory(){
+    const viewerEmail = getViewerEmail();
+  if (!viewerEmail){
+    alert('Вкажіть email лікаря у вікні "Історія", щоб зберігати/читати серверну історію.');
+    return;
+  }
+
   const snap = snapshotCurrent();
 
   const payload = {
     pib: snap.name || '',
+    ownerEmail: viewerEmail,
+    viewerEmail,
+    isAdmin: isAdminEmail(viewerEmail),
     snapshot: snap,
     form: snap.form || {},
     polygons: snap.polygons || {},
@@ -1901,7 +1943,12 @@ async function saveCurrentToHistory(){
 }
 
 async function loadSession(id, ownerEmail){
-  const res = await loadPatientRemote(id, ownerEmail);
+  const viewerEmail = getViewerEmail();
+  if (!viewerEmail){
+    alert('Вкажіть email лікаря у вікні "Історія".');
+    return;
+  }
+  const res = await loadPatientRemote(id, ownerEmail, viewerEmail);
   const s = res && res.ok ? (res.data.snapshot || res.data) : null;
   if (!s) return;
 
@@ -1914,11 +1961,17 @@ async function loadSession(id, ownerEmail){
   }
 
 async function removeSession(id, ownerEmail){
+    const viewerEmail = getViewerEmail();
+  if (!viewerEmail){
+    alert('Вкажіть email лікаря у вікні "Історія".');
+    return;
+  }
+
   const res = await fetch(window.API_BASE + '/api/patient/delete', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ patientId: id, ownerEmail })
+    body: JSON.stringify({ patientId: id, ownerEmail, viewerEmail, isAdmin: isAdminEmail(viewerEmail) })
   });
 
   const data = await res.json();
@@ -1945,6 +1998,14 @@ async function renderHistory(){
   const list = document.getElementById('historyList');
   if (!list) return;
 
+    const viewerEmail = getViewerEmail();
+  refreshHistoryScopeNote();
+  if (!viewerEmail){
+    list.innerHTML = '<div class="muted">Вкажіть email лікаря, щоб завантажити історію.</div>';
+    return;
+  }
+
+  const esc = (v)=>String(v||'').replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
   const items = await readHistory();
 
   if (!items.length){
@@ -1954,10 +2015,10 @@ async function renderHistory(){
 
   list.innerHTML = items.map(s => (
     '<div class="row">'+
-      '<div class="meta"><div class="name">'+ (s.pib || s.name || 'Безіменний') +'</div><div class="date">'+ fmtDate(s.updatedAt || s.savedAt) +'</div></div>'+
-      '<div class="actions">'+
-        '<button class="btn" data-act="load" data-id="'+ s.patientId +'" data-owner="'+ (s.ownerEmail || '') +'">Відкрити</button>'+
-        '<button class="btn" data-act="delete" data-id="'+ s.patientId +'" data-owner="'+ (s.ownerEmail || '') +'">Видалити</button>'+
+      '<div class="meta"><div class="name">'+ esc(s.pib || s.name || 'Безіменний') +'</div><div class="date">'+ fmtDate(s.updatedAt || s.savedAt) +'</div></div>'+
+    '<div class="actions">'+
+        '<button class="btn" data-act="load" data-id="'+ esc(s.patientId) +'" data-owner="'+ esc(s.ownerEmail || '') +'">Відкрити</button>'+
+        '<button class="btn" data-act="delete" data-id="'+ esc(s.patientId) +'" data-owner="'+ esc(s.ownerEmail || '') +'">Видалити</button>'+
       '</div>'+
     '</div>'
   )).join('');
@@ -1990,6 +2051,12 @@ document.addEventListener('DOMContentLoaded', function(){
     const closeBtn = document.getElementById('btnHistoryClose');
     const saveBtn = document.getElementById('btnHistorySave');
     const backdrop = document.getElementById('historyBackdrop');
+    const emailInput = document.getElementById('historyUserEmail');
+    const emailApplyBtn = document.getElementById('btnHistoryUserApply');
+
+    const initialEmail = localStorage.getItem(LS_USER_EMAIL_KEY) || '';
+    if (emailInput && initialEmail) emailInput.value = initialEmail;
+    refreshHistoryScopeNote();
 
 if (openBtn) openBtn.addEventListener('click', async function(){
   document.body.classList.add('history-open');
@@ -1999,11 +2066,24 @@ if (openBtn) openBtn.addEventListener('click', async function(){
     if (backdrop) backdrop.addEventListener('click', function(){ document.body.classList.remove('history-open'); });
 if (saveBtn) saveBtn.addEventListener('click', async function(){ await saveCurrentToHistory(); });
 
+      if (emailApplyBtn) emailApplyBtn.addEventListener('click', async function(){
+      if (!persistViewerEmail(emailInput ? emailInput.value : '')) {
+        alert('Вкажіть коректний email лікаря.');
+        return;
+      }
+      refreshHistoryScopeNote();
+      await renderHistory();
+    });
+    if (emailInput) emailInput.addEventListener('change', function(){
+      persistViewerEmail(emailInput.value || '');
+      refreshHistoryScopeNote();
+    });
+  
 // Optional auto-save when PIB changes and user leaves the field
 const pib = document.getElementById('pib');
 if (pib){
   pib.addEventListener('change', async function(){
-    await saveCurrentToHistory();
+    if (getViewerEmail()) await saveCurrentToHistory();
   });
 }
 });
@@ -2045,20 +2125,22 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 
-async function getHistoryRemote() {
-  const res = await fetch(window.API_BASE + '/api/history/list', {
+async function getHistoryRemote(viewerEmail) {
+  const v = encodeURIComponent(normalizeEmail(viewerEmail));
+  const scope = isAdminEmail(viewerEmail) ? 'all' : 'mine';
+  const res = await fetch(window.API_BASE + '/api/history/list?viewerEmail=' + v + '&scope=' + scope, {
     method: 'GET',
     credentials: 'include'
   });
   return await res.json();
 }
 
-async function loadPatientRemote(patientId, ownerEmail) {
+async function loadPatientRemote(patientId, ownerEmail, viewerEmail) {
   const res = await fetch(window.API_BASE + '/api/patient/get', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ patientId, ownerEmail })
+    body: JSON.stringify({ patientId, ownerEmail, viewerEmail, isAdmin: isAdminEmail(viewerEmail) })
   });
   return await res.json();
 }
