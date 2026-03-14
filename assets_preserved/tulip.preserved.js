@@ -1944,16 +1944,16 @@ if (openBtn) openBtn.addEventListener('click', async function(){
 });
     if (closeBtn) closeBtn.addEventListener('click', function(){ document.body.classList.remove('history-open'); });
     if (backdrop) backdrop.addEventListener('click', function(){ document.body.classList.remove('history-open'); });
-    if (saveBtn) saveBtn.addEventListener('click', function(){ saveCurrentToHistory(); });
+if (saveBtn) saveBtn.addEventListener('click', async function(){ await saveCurrentToHistory(); });
 
-    // Optional auto-save when PIB changes and user leaves the field
-    const pib = document.getElementById('pib');
-    if (pib){
-      pib.addEventListener('change', function(){
-        // If there's already a history entry with previous name, saving will overwrite same-name entry
-        saveCurrentToHistory();
-      });
-    }
+// Optional auto-save when PIB changes and user leaves the field
+const pib = document.getElementById('pib');
+if (pib){
+  pib.addEventListener('change', async function(){
+    // If there's already a history entry with previous name, saving will overwrite same-name entry
+    await saveCurrentToHistory();
+  });
+}
   });
 })();
 
