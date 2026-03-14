@@ -1971,7 +1971,9 @@ list.querySelectorAll('button[data-act="delete"]').forEach(b =>
   })
 );
 
-  document.addEventListener('DOMContentLoaded', function(){
+}
+
+document.addEventListener('DOMContentLoaded', function(){
     const openBtn = document.getElementById('btnHistory');
     const closeBtn = document.getElementById('btnHistoryClose');
     const saveBtn = document.getElementById('btnHistorySave');
