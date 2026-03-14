@@ -1771,8 +1771,8 @@ async function readHistory(){
 async function writeHistory(arr){
   return arr;
 }
-  }
-  function uuid(){ return 'h-'+Math.random().toString(36).slice(2)+Date.now().toString(36); }
+
+function uuid(){ return 'h-'+Math.random().toString(36).slice(2)+Date.now().toString(36); }
 
   // Collect all input/select/textarea values
   function collectFormValues(){
