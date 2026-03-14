@@ -8,8 +8,18 @@
   } catch(e) {}
 })();
 
-window.API_BASE = window.API_BASE || "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
-window.USE_REMOTE_API = true;
+(function configureApiBase(){
+  const explicit = (window.API_BASE || "").trim();
+  const host = (location.hostname || "").toLowerCase();
+  const defaultBase = (host === "tulip-pirads.com" || host.endsWith(".tulip-pirads.com"))
+    ? location.origin
+    : "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
+  window.API_BASE = explicit || defaultBase;
+  window.USE_REMOTE_API = true;
+
+  const apiOrigin = (()=>{ try { return new URL(window.API_BASE, location.origin).origin; } catch(_) { return ""; } })();
+  window.API_CREDENTIALS = apiOrigin === location.origin ? "include" : "omit";
+})();
 
 
 
@@ -1252,8 +1262,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <script>
-window.API_BASE = window.API_BASE || "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
-window.USE_REMOTE_API = true;
+(function configureApiBase(){
+  const explicit = (window.API_BASE || "").trim();
+  const host = (location.hostname || "").toLowerCase();
+  const defaultBase = (host === "tulip-pirads.com" || host.endsWith(".tulip-pirads.com"))
+    ? location.origin
+    : "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
+  window.API_BASE = explicit || defaultBase;
+  window.USE_REMOTE_API = true;
+
+  const apiOrigin = (()=>{ try { return new URL(window.API_BASE, location.origin).origin; } catch(_) { return ""; } })();
+  window.API_CREDENTIALS = apiOrigin === location.origin ? "include" : "omit";
+})();
 
 
 
@@ -1967,9 +1987,9 @@ async function removeSession(id, ownerEmail){
     return;
   }
 
-  const res = await fetch(window.API_BASE + '/api/patient/delete', {
+  const res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/patient/delete', {
     method: 'POST',
-    credentials: 'include',
+    credentials: (window.API_CREDENTIALS || 'same-origin'),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ patientId: id, ownerEmail, viewerEmail, isAdmin: isAdminEmail(viewerEmail) })
   });
@@ -2128,17 +2148,17 @@ document.addEventListener('DOMContentLoaded', function(){
 async function getHistoryRemote(viewerEmail) {
   const v = encodeURIComponent(normalizeEmail(viewerEmail));
   const scope = isAdminEmail(viewerEmail) ? 'all' : 'mine';
-  const res = await fetch(window.API_BASE + '/api/history/list?viewerEmail=' + v + '&scope=' + scope, {
+  const res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/history/list?viewerEmail=' + v + '&scope=' + scope, {
     method: 'GET',
-    credentials: 'include'
+    credentials: (window.API_CREDENTIALS || 'same-origin')
   });
   return await res.json();
 }
 
 async function loadPatientRemote(patientId, ownerEmail, viewerEmail) {
-  const res = await fetch(window.API_BASE + '/api/patient/get', {
+  const res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/patient/get', {
     method: 'POST',
-    credentials: 'include',
+    credentials: (window.API_CREDENTIALS || 'same-origin'),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ patientId, ownerEmail, viewerEmail, isAdmin: isAdminEmail(viewerEmail) })
   });
@@ -2146,9 +2166,9 @@ async function loadPatientRemote(patientId, ownerEmail, viewerEmail) {
 }
 
 async function savePatientRemote(payload) {
-  const res = await fetch(window.API_BASE + '/api/patient/save', {
+  const res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/patient/save', {
     method: 'POST',
-    credentials: 'include',
+    credentials: (window.API_CREDENTIALS || 'same-origin'),
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
