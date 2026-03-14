@@ -1993,7 +1993,7 @@ if (pib){
     await saveCurrentToHistory();
   });
 }
-})();
+});
 
 (function(){
   function showInfo(){
