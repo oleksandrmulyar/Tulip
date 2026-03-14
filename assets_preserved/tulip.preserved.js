@@ -1759,11 +1759,18 @@ window.USE_REMOTE_API = true;
     const mm=String(d.getMonth()+1).padStart(2,'0'); const yy=d.getFullYear();
     return dd+'.'+mm+'.'+yy;
   }
-  function readHistory(){
-    try{ return JSON.parse(localStorage.getItem(LS_KEY)||'[]'); }catch(_){ return []; }
+async function readHistory(){
+  try {
+    const res = await getHistoryRemote();
+    return res && res.ok && Array.isArray(res.items) ? res.items : [];
+  } catch(_) {
+    return [];
   }
-  function writeHistory(arr){
-    try{ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }catch(_){}
+}
+
+async function writeHistory(arr){
+  return arr;
+}
   }
   function uuid(){ return 'h-'+Math.random().toString(36).slice(2)+Date.now().toString(36); }
 
