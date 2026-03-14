@@ -10,10 +10,7 @@
 
 (function configureApiBase(){
   const explicit = (window.API_BASE || "").trim();
-  const host = (location.hostname || "").toLowerCase();
-  const defaultBase = (host === "tulip-pirads.com" || host.endsWith(".tulip-pirads.com"))
-    ? location.origin
-    : "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
+  const defaultBase = "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
   window.API_BASE = explicit || defaultBase;
   window.USE_REMOTE_API = true;
 
@@ -712,7 +709,8 @@ async function apiPost(path, payload){
   }
   const res = await fetch(String(window.API_BASE).replace(/\/$/, '') + path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    credentials: (window.API_CREDENTIALS || 'omit'),
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
     body: JSON.stringify(payload)
   });
   const data = await res.json().catch(()=>({ ok:false, error:'Некоректна відповідь API' }));
@@ -1264,12 +1262,13 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
 (function configureApiBase(){
   const explicit = (window.API_BASE || "").trim();
-  const host = (location.hostname || "").toLowerCase();
-  const defaultBase = (host === "tulip-pirads.com" || host.endsWith(".tulip-pirads.com"))
-    ? location.origin
-    : "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
+  const defaultBase = "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
   window.API_BASE = explicit || defaultBase;
   window.USE_REMOTE_API = true;
+
+  const apiOrigin = (()=>{ try { return new URL(window.API_BASE, location.origin).origin; } catch(_) { return ""; } })();
+  window.API_CREDENTIALS = apiOrigin === location.origin ? "include" : "omit";
+})();
 
   const apiOrigin = (()=>{ try { return new URL(window.API_BASE, location.origin).origin; } catch(_) { return ""; } })();
   window.API_CREDENTIALS = apiOrigin === location.origin ? "include" : "omit";
@@ -1989,8 +1988,8 @@ async function removeSession(id, ownerEmail){
 
   const res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/patient/delete', {
     method: 'POST',
-    credentials: (window.API_CREDENTIALS || 'same-origin'),
-    headers: { 'Content-Type': 'application/json' },
+    credentials: (window.API_CREDENTIALS || 'omit'),
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
     body: JSON.stringify({ patientId: id, ownerEmail, viewerEmail, isAdmin: isAdminEmail(viewerEmail) })
   });
 
@@ -2150,7 +2149,7 @@ async function getHistoryRemote(viewerEmail) {
   const scope = isAdminEmail(viewerEmail) ? 'all' : 'mine';
   const res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/history/list?viewerEmail=' + v + '&scope=' + scope, {
     method: 'GET',
-    credentials: (window.API_CREDENTIALS || 'same-origin')
+    credentials: (window.API_CREDENTIALS || 'omit')
   });
   return await res.json();
 }
@@ -2158,8 +2157,8 @@ async function getHistoryRemote(viewerEmail) {
 async function loadPatientRemote(patientId, ownerEmail, viewerEmail) {
   const res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/patient/get', {
     method: 'POST',
-    credentials: (window.API_CREDENTIALS || 'same-origin'),
-    headers: { 'Content-Type': 'application/json' },
+    credentials: (window.API_CREDENTIALS || 'omit'),
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
     body: JSON.stringify({ patientId, ownerEmail, viewerEmail, isAdmin: isAdminEmail(viewerEmail) })
   });
   return await res.json();
@@ -2168,8 +2167,8 @@ async function loadPatientRemote(patientId, ownerEmail, viewerEmail) {
 async function savePatientRemote(payload) {
   const res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/patient/save', {
     method: 'POST',
-    credentials: (window.API_CREDENTIALS || 'same-origin'),
-    headers: { 'Content-Type': 'application/json' },
+    credentials: (window.API_CREDENTIALS || 'omit'),
+    headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
     body: JSON.stringify(payload)
   });
   return await res.json();
