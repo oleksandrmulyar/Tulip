@@ -1867,33 +1867,56 @@ async function writeHistory(arr){
     };
   }
 
-  function saveCurrentToHistory(){
-    const arr = readHistory();
-    const snap = snapshotCurrent();
-    // If a session with same name exists, replace most recent one with same name
-    const idx = arr.findIndex(s => s.name === snap.name);
-    if (idx >= 0) arr.splice(idx, 1, snap); else arr.unshift(snap);
-    writeHistory(arr);
-    renderHistory();
+async function saveCurrentToHistory(){
+  const snap = snapshotCurrent();
+
+  const payload = {
+    pib: snap.name || '',
+    snapshot: snap,
+    form: snap.form || {},
+    polygons: snap.polygons || {},
+    reportHTML: snap.reportHTML || ''
+  };
+
+  const res = await savePatientRemote(payload);
+
+  if (!res || !res.ok) {
+    alert((res && res.error) || 'Помилка серверного збереження');
+    return;
   }
 
-  function loadSession(id){
-    const arr = readHistory();
-    const s = arr.find(x => x.id === id);
-    if (!s) return;
-    applyFormValues(s.form);
-    applyPolygons(s.polygons);
-    applyReport(s.reportHTML);
+  await renderHistory();
+}
+
+async function loadSession(id, ownerEmail){
+  const res = await loadPatientRemote(id, ownerEmail);
+  const s = res && res.ok ? (res.data.snapshot || res.data) : null;
+  if (!s) return;
+
+  applyFormValues(s.form);
+  applyPolygons(s.polygons);
+  applyReport(s.reportHTML);
     // refresh any derived UI after load (e.g., regenerate report preview if needed)
     // Try to trigger known functions if they exist
     if (typeof window.handleMakeReport === 'function') { try{ window.handleMakeReport(); }catch(_){ } }
   }
 
-  function removeSession(id){
-    const arr = readHistory().filter(x => x.id !== id);
-    writeHistory(arr);
-    renderHistory();
+async function removeSession(id, ownerEmail){
+  const res = await fetch(window.API_BASE + '/api/patient/delete', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ patientId: id, ownerEmail })
+  });
+
+  const data = await res.json();
+  if (!data || !data.ok) {
+    alert((data && data.error) || 'Не вдалося видалити запис');
+    return;
   }
+
+  await renderHistory();
+}
 
   function fmtDate(iso){
     try{
@@ -1911,7 +1934,7 @@ async function writeHistory(arr){
     if (!list) return;
     const items = readHistory();
     if (!items.length){
-      list.innerHTML = '<div class="muted">Поки що порожньо. Натисни «Зберегти поточного».</div>';
+      list.innerІHTML = '<div class="muted">Поки що порожньо. Натисни «Зберегти поточного».</div>';
       return;
     }
     list.innerHTML = items.map(s => (
