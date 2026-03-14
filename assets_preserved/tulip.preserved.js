@@ -926,6 +926,18 @@ try {
 } catch(_) {}
 
 // 2) Інʼєкція DCE поруч із DWI (працює навіть якщо у DWI немає класу)
+function injectDCE(){
+  try {
+    for (let n = 1; n <= 5; n++){
+      const L = state.lesions[String(n)] || (state.lesions[String(n)] = {});
+      const dce = document.getElementById('dce-' + n);
+      if (!dce) continue;
+      if (L.dce === undefined) L.dce = '';
+      if (dce.value !== (L.dce || '')) dce.value = L.dce || '';
+      dce.onchange = (e)=>{ L.dce = e.target.value; save && save(); draw && draw(); };
+    }
+  } catch(_) {}
+}
 
 // 3) Гарантуємо виклик після побудови рядків
 // Якщо у вас уже є десь draw(); просто додайте після нього:
