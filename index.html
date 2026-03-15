@@ -102,7 +102,7 @@
 <h3>🧾 Історія пацієнтів</h3>
 <ul>
   <li>Кнопка <b>Історія</b> у верхній панелі відкриває список збережених пацієнтів.</li>
-  <li><b>Зберегти поточного</b> — зберігає ПІБ, усі поля, полігони (<code>pirads21_*</code>) та вміст звіту.</li>
+  <li><b>Зберегти</b> у верхній панелі — зберігає ПІБ, усі поля, полігони (<code>pirads21_*</code>) та вміст звіту.</li>
   <li>У списку: <b>Відкрити</b> — відновлює повний стан; <b>Видалити</b> — прибирає запис.</li>
   <li>Після зміни ПІБ стан автоматично перезаписується під цим ім’ям.</li>
 </ul>
@@ -116,6 +116,7 @@
 
 <div class="floating">
     <button id="btnHistory" class="btn">Історія</button>
+  <button id="btnHistorySave" class="btn">Зберегти</button>
   <button id="makeReport" class="btn">Звіт</button> <button id="btnSaveImage" class="btn">Зберегти як зображення</button> <select id="imgFormat" class="btn" style="margin-left:6px;padding:8px 10px;">
   <option value="png" selected>PNG</option>
   <option value="jpg" selected>JPEG</option>
@@ -1321,7 +1322,6 @@
   <header>
     <div>Історія пацієнтів</div>
     <div class="actions">
-      <button id="btnHistorySave" class="btn">Зберегти поточного</button>
       <button id="btnHistoryClose" class="btn">Закрити</button>
     </div>
   </header>
