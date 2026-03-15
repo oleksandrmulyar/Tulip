@@ -1788,6 +1788,17 @@ document.addEventListener('DOMContentLoaded', () => {
       openDrawer(false);
       try { localStorage.removeItem('pirads_user_email_v1'); } catch(_) {}
 
+      async function canUseLogoutResponse(path, res){
+        if (!res) return false;
+        if (!(res.ok || (res.status >= 300 && res.status < 400))) return false;
+        if (path !== '/cdn-cgi/access/logout') return true;
+        try {
+          const body = (await res.text() || '').toLowerCase();
+          if (body.includes('no access cookie found')) return false;
+        } catch(_) {}
+        return true;
+      }
+
       const logoutPaths = [
         '/cdn-cgi/access/logout',
         '/api/logout',
@@ -1801,14 +1812,14 @@ document.addEventListener('DOMContentLoaded', () => {
             credentials: (window.API_CREDENTIALS || 'include'),
             redirect: 'manual'
           });
-          if (res && (res.ok || (res.status >= 300 && res.status < 400))) {
+          if (await canUseLogoutResponse(path, res)) {
             window.location.href = path;
             return;
           }
         } catch(_) {}
       }
 
-      window.location.href = '/cdn-cgi/access/logout';
+      window.location.href = '/';
     });
     if(miChoose) miChoose.addEventListener('click', function(){
       openDrawer(false);
