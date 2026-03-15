@@ -2316,13 +2316,19 @@ async function removeSession(id, ownerEmail){
     }catch(_){ return todayDDMMYYYY(); }
   }
 
-function filterPatientHistoryItems(items, query, isAdmin) {
+const USER_SEARCH_FILTER_ADMIN_EMAIL = 'oleksandrmulyar@gmail.com';
+
+function canUseUserSearchFilter(email, isAdmin) {
+  return !!isAdmin && normalizeEmail(email) === USER_SEARCH_FILTER_ADMIN_EMAIL;
+}
+
+function filterPatientHistoryItems(items, query, allowUserSearchFilter) {
   const normalizedQuery = String(query || '').trim().toLowerCase();
   if (!normalizedQuery) return items;
   return items.filter(item => {
     const pib = String(item && (item.pib || item.name) || '').toLowerCase();
     if (pib.includes(normalizedQuery)) return true;
-    if (!isAdmin) return false;
+    if (!allowUserSearchFilter) return false;
 
     const login = String(
       item && (item.ownerLogin || item.login || item.ownerEmail || '')
@@ -2391,14 +2397,19 @@ async function renderPatientHistory(items, email, isAdmin) {
   }
 
   const searchInput = document.getElementById('historySearch');
+  const allowUserSearchFilter = canUseUserSearchFilter(email, isAdmin);
   const apply = function(){
-    const filtered = filterPatientHistoryItems(items, searchInput ? searchInput.value : '', !!isAdmin);
+    const filtered = filterPatientHistoryItems(
+      items,
+      searchInput ? searchInput.value : '',
+      allowUserSearchFilter
+    );
     renderPatientHistoryList(filtered);
   };
 
   if (searchInput){
     searchInput.value = '';
-    searchInput.placeholder = isAdmin
+    searchInput.placeholder = allowUserSearchFilter
       ? 'Пошук за ПІБ або логіном користувача'
       : 'Пошук за ПІБ (будь-яка частина)';
     searchInput.oninput = apply;
