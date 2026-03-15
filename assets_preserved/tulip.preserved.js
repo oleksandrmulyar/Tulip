@@ -10,8 +10,11 @@
 
 (function configureApiBase(){
   const explicit = (window.API_BASE || "").trim();
-  const defaultBase = "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
-  window.API_BASE = explicit || defaultBase;
+  const legacyWorkerBase = "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
+  const sameOriginBase = location.origin;
+  const list = [explicit, sameOriginBase, legacyWorkerBase].filter(Boolean);
+  window.API_BASE_CANDIDATES = Array.from(new Set(list));
+  window.API_BASE = window.API_BASE_CANDIDATES[0] || sameOriginBase;
   window.USE_REMOTE_API = true;
 
   const apiOrigin = (()=>{ try { return new URL(window.API_BASE, location.origin).origin; } catch(_) { return ""; } })();
@@ -698,12 +701,51 @@ buildTable();
 
 const __volDebounce = { t: null };
 let __remoteApiDisabledReason = '';
+let __apiBaseRetryLock = false;
 
 function disableRemoteApi(reason){
   if (!window.USE_REMOTE_API) return;
   window.USE_REMOTE_API = false;
   __remoteApiDisabledReason = String(reason || 'remote-api-disabled');
   console.warn('Remote API disabled:', __remoteApiDisabledReason);
+}
+
+function applyApiBase(base){
+  window.API_BASE = base;
+  const apiOrigin = (()=>{ try { return new URL(window.API_BASE, location.origin).origin; } catch(_) { return ""; } })();
+  window.API_CREDENTIALS = apiOrigin === location.origin ? "include" : "omit";
+}
+
+function tryNextApiBase(reason){
+  const list = Array.isArray(window.API_BASE_CANDIDATES) ? window.API_BASE_CANDIDATES : [];
+  if (!list.length) return false;
+  const idx = list.indexOf(window.API_BASE);
+  const next = list[idx + 1];
+  if (!next || next === window.API_BASE) return false;
+  applyApiBase(next);
+  console.warn('API base fallback:', reason || 'unknown', '->', next);
+  return true;
+}
+
+async function apiFetch(path, init, retryAllowed){
+  if (!window.USE_REMOTE_API || !window.API_BASE) {
+    throw new Error('API вимкнено');
+  }
+  const url = String(window.API_BASE).replace(/\/$/, '') + path;
+  try{
+    return await fetch(url, init);
+  }catch(err){
+    if (retryAllowed && !__apiBaseRetryLock && tryNextApiBase('fetch-failed')) {
+      __apiBaseRetryLock = true;
+      try {
+        return await apiFetch(path, init, false);
+      } finally {
+        __apiBaseRetryLock = false;
+      }
+    }
+    disableRemoteApi('fetch-failed:' + (err && err.message ? err.message : 'network-error'));
+    throw err;
+  }
 }
 
 function localVolumeCalc(){
@@ -715,23 +757,24 @@ async function apiPost(path, payload){
   if (!window.USE_REMOTE_API || !window.API_BASE || /REPLACE_WITH_YOUR_WORKER/.test(window.API_BASE)) {
     throw new Error('API_BASE не налаштовано');
   }
-  const url = String(window.API_BASE).replace(/\/$/, '') + path;
   let res;
   try{
-    res = await fetch(url, {
+    res = await apiFetch(path, {
       method: 'POST',
       credentials: (window.API_CREDENTIALS || 'omit'),
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify(payload)
-    });
+    }, true);
   }catch(err){
-    disableRemoteApi('fetch-failed:' + (err && err.message ? err.message : 'network-error'));
     throw err;
   }
   const raw = await res.text();
   let data = null;
   try { data = raw ? JSON.parse(raw) : null; } catch(_) {}
   if (!data || typeof data !== 'object') {
+    if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) {
+      return apiPost(path, payload);
+    }
     if ([404, 405].includes(res.status)) {
       disableRemoteApi('http-' + res.status);
     }
@@ -2016,14 +2059,13 @@ async function removeSession(id, ownerEmail){
 
   let res;
   try{
-    res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/patient/delete', {
+    res = await apiFetch('/api/patient/delete', {
       method: 'POST',
       credentials: (window.API_CREDENTIALS || 'omit'),
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify({ patientId: id, ownerEmail, viewerEmail, isAdmin: isAdminEmail(viewerEmail) })
-    });
+    }, true);
   }catch(_){
-    disableRemoteApi('patient-delete-fetch-failed');
     alert('Серверне API тимчасово недоступне.');
     return;
   }
@@ -2032,6 +2074,7 @@ async function removeSession(id, ownerEmail){
   let data = null;
   try { data = raw ? JSON.parse(raw) : null; } catch(_) {}
   if (!res.ok || !data || typeof data !== 'object') {
+        if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return removeSession(id, ownerEmail);
     if ([404, 405].includes(res.status)) disableRemoteApi('http-' + res.status);
     alert('Не вдалося видалити запис');
     return;
@@ -2192,18 +2235,18 @@ async function getHistoryRemote(viewerEmail) {
   const scope = isAdminEmail(viewerEmail) ? 'all' : 'mine';
   let res;
   try{
-    res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/history/list?viewerEmail=' + v + '&scope=' + scope, {
+    res = await apiFetch('/api/history/list?viewerEmail=' + v + '&scope=' + scope, {
       method: 'GET',
       credentials: (window.API_CREDENTIALS || 'omit')
-    });
+    }, true);
   }catch(_){
-    disableRemoteApi('history-list-fetch-failed');
     return { ok:false, items:[] };
   }
   const raw = await res.text();
   let data = null;
   try { data = raw ? JSON.parse(raw) : null; } catch(_) {}
   if (!res.ok || !data || typeof data !== 'object') {
+        if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return getHistoryRemote(viewerEmail);
     if ([404, 405].includes(res.status)) disableRemoteApi('http-' + res.status);
     return { ok:false, items:[] };
   }
@@ -2214,20 +2257,20 @@ async function loadPatientRemote(patientId, ownerEmail, viewerEmail) {
     if (!window.USE_REMOTE_API || !window.API_BASE) return { ok:false, error:'API вимкнено' };
   let res;
   try{
-    res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/patient/get', {
+    res = await apiFetch('/api/patient/get', {
       method: 'POST',
       credentials: (window.API_CREDENTIALS || 'omit'),
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify({ patientId, ownerEmail, viewerEmail, isAdmin: isAdminEmail(viewerEmail) })
-    });
+    }, true);
   }catch(_){
-    disableRemoteApi('patient-get-fetch-failed');
     return { ok:false, error:'Серверне API тимчасово недоступне' };
   }
   const raw = await res.text();
   let data = null;
   try { data = raw ? JSON.parse(raw) : null; } catch(_) {}
   if (!res.ok || !data || typeof data !== 'object') {
+        if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return loadPatientRemote(patientId, ownerEmail, viewerEmail);
     if ([404, 405].includes(res.status)) disableRemoteApi('http-' + res.status);
     return { ok:false, error:'Помилка завантаження з сервера' };
   }
@@ -2238,20 +2281,20 @@ async function savePatientRemote(payload) {
     if (!window.USE_REMOTE_API || !window.API_BASE) return { ok:false, error:'API вимкнено' };
   let res;
   try{
-    res = await fetch(String(window.API_BASE).replace(/\/$/, '') + '/api/patient/save', {
+    res = await apiFetch('/api/patient/save', {
       method: 'POST',
       credentials: (window.API_CREDENTIALS || 'omit'),
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify(payload)
-    });
+    }, true);
   }catch(_){
-    disableRemoteApi('patient-save-fetch-failed');
     return { ok:false, error:'Серверне API тимчасово недоступне' };
   }
   const raw = await res.text();
   let data = null;
   try { data = raw ? JSON.parse(raw) : null; } catch(_) {}
   if (!res.ok || !data || typeof data !== 'object') {
+        if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return savePatientRemote(payload);
     if ([404, 405].includes(res.status)) disableRemoteApi('http-' + res.status);
     return { ok:false, error:'Помилка серверного збереження' };
   }
