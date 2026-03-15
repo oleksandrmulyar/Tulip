@@ -1845,34 +1845,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 (function(){
-  const LS_KEY = 'pirads_history_v1';
-    const LS_USER_EMAIL_KEY = 'pirads_user_email_v1';
+  const LS_USER_EMAIL_KEY = 'pirads_user_email_v1';
   const ADMIN_EMAIL = 'oleksandrmulyar@gmail.com';
+    let accessUserInfoCache = null;
 
   function normalizeEmail(v){ return String(v||'').trim().toLowerCase(); }
   function isAdminEmail(email){ return normalizeEmail(email) === ADMIN_EMAIL; }
-  function getViewerEmail(){
-    const fromField = document.getElementById('historyUserEmail')?.value;
-    const raw = fromField || localStorage.getItem(LS_USER_EMAIL_KEY) || '';
-    return normalizeEmail(raw);
+    function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[ch]));
   }
-  function persistViewerEmail(email){
-    const v = normalizeEmail(email);
-    if (!v) return false;
-    localStorage.setItem(LS_USER_EMAIL_KEY, v);
-    const el = document.getElementById('historyUserEmail');
-    if (el && el.value !== v) el.value = v;
-    return true;
+
+  async function loadAccessUserInfo() {
+    const box = document.getElementById('accessUserInfo');
+    try {
+      const res = await fetch('/api/me', {
+        method: 'GET',
+        credentials: (window.API_CREDENTIALS || 'include')
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Failed to load user info');
+      }
+
+      accessUserInfoCache = {
+        email: normalizeEmail(data.email || ''),
+        admin: !!data.admin
+      };
+
+      if (box) {
+        box.innerHTML =
+          'Увійшли як: <b>' + escapeHtml(accessUserInfoCache.email || '—') + '</b> ' +
+          '| admin: <b>' + (accessUserInfoCache.admin ? 'yes' : 'no') + '</b>';
+      }
+
+      const emailInput = document.getElementById('historyUserEmail');
+      if (emailInput) emailInput.value = accessUserInfoCache.email || '';
+      localStorage.setItem(LS_USER_EMAIL_KEY, accessUserInfoCache.email || '');
+      return accessUserInfoCache;
+    } catch (err) {
+      const fallbackEmail = normalizeEmail(localStorage.getItem(LS_USER_EMAIL_KEY) || '');
+      accessUserInfoCache = { email: fallbackEmail, admin: isAdminEmail(fallbackEmail) };
+      if (box) {
+        box.textContent = fallbackEmail
+          ? 'Не вдалося визначити Access-користувача (використано локальний email)'
+          : 'Не вдалося визначити Access-користувача';
+      }
+      console.error('loadAccessUserInfo failed:', err);
+      return accessUserInfoCache;
+    }
   }
-  function refreshHistoryScopeNote(){
+
+  async function getAccessIdentity(forceReload){
+    if (!forceReload && accessUserInfoCache) return accessUserInfoCache;
+    return loadAccessUserInfo();
+  }
+
+  function refreshHistoryScopeNote(isAdmin){
     const note = document.getElementById('historyScopeNote');
     if (!note) return;
-    const email = getViewerEmail();
-    if (!email){
-      note.textContent = 'Вкажіть email лікаря. Доступ буде тільки до власних пацієнтів, для admin — до всіх.';
-      return;
-    }
-    note.textContent = isAdminEmail(email)
+       note.textContent = isAdmin
       ? 'Режим: адміністратор (доступ до всіх пацієнтів).'
       : 'Режим: користувач (доступ лише до власних пацієнтів).';
   }
@@ -1883,19 +1920,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const mm=String(d.getMonth()+1).padStart(2,'0'); const yy=d.getFullYear();
     return dd+'.'+mm+'.'+yy;
   }
-async function readHistory(){
-    const viewerEmail = getViewerEmail();
-  if (!viewerEmail) return [];
+async function readHistory(viewerEmail){
+  if (!viewerEmail) return { items: [], email: '', admin: false };
   try {
     const res = await getHistoryRemote(viewerEmail);
-    return res && res.ok && Array.isArray(res.items) ? res.items : [];
+    if (!res || !res.ok) return { items: [], email: viewerEmail, admin: false };
+    return {
+      items: Array.isArray(res.items) ? res.items : [],
+      email: normalizeEmail(res.email || viewerEmail || ''),
+      admin: !!res.admin
+    };
   } catch(_) {
-    return [];
+    return { items: [], email: viewerEmail, admin: false };
   }
-}
-
-async function writeHistory(arr){
-  return arr;
 }
 
 function uuid(){ return 'h-'+Math.random().toString(36).slice(2)+Date.now().toString(36); }
@@ -1994,9 +2031,10 @@ function uuid(){ return 'h-'+Math.random().toString(36).slice(2)+Date.now().toSt
   }
 
 async function saveCurrentToHistory(){
-    const viewerEmail = getViewerEmail();
+  const me = await getAccessIdentity();
+  const viewerEmail = normalizeEmail(me && me.email);
   if (!viewerEmail){
-    alert('Вкажіть email лікаря у вікні "Історія", щоб зберігати/читати серверну історію.');
+    alert('Не вдалося визначити Access-користувача. Перезайдіть у систему.');
     return;
   }
 
@@ -2006,7 +2044,7 @@ async function saveCurrentToHistory(){
     pib: snap.name || '',
     ownerEmail: viewerEmail,
     viewerEmail,
-    isAdmin: isAdminEmail(viewerEmail),
+    isAdmin: !!(me && me.admin),
     snapshot: snap,
     form: snap.form || {},
     polygons: snap.polygons || {},
@@ -2020,16 +2058,17 @@ async function saveCurrentToHistory(){
     return;
   }
 
-  await renderHistory();
+  await loadPatientHistory();
 }
 
 async function loadSession(id, ownerEmail){
-  const viewerEmail = getViewerEmail();
+  const me = await getAccessIdentity();
+  const viewerEmail = normalizeEmail(me && me.email);
   if (!viewerEmail){
-    alert('Вкажіть email лікаря у вікні "Історія".');
+    alert('Не вдалося визначити Access-користувача.');
     return;
   }
-  const res = await loadPatientRemote(id, ownerEmail, viewerEmail);
+  const res = await loadPatientRemote(id, ownerEmail, viewerEmail, !!(me && me.admin));
   const s = res && res.ok ? (res.data.snapshot || res.data) : null;
   if (!s) return;
 
@@ -2042,9 +2081,10 @@ async function loadSession(id, ownerEmail){
   }
 
 async function removeSession(id, ownerEmail){
-    const viewerEmail = getViewerEmail();
+  const me = await getAccessIdentity();
+  const viewerEmail = normalizeEmail(me && me.email);
   if (!viewerEmail){
-    alert('Вкажіть email лікаря у вікні "Історія".');
+    alert('Не вдалося визначити Access-користувача.');
     return;
   }
 
@@ -2059,7 +2099,7 @@ async function removeSession(id, ownerEmail){
       method: 'POST',
       credentials: (window.API_CREDENTIALS || 'omit'),
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: JSON.stringify({ patientId: id, ownerEmail, viewerEmail, isAdmin: isAdminEmail(viewerEmail) })
+      body: JSON.stringify({ patientId: id, ownerEmail, viewerEmail, isAdmin: !!(me && me.admin) })
     }, true);
   }catch(_){
     alert('Серверне API тимчасово недоступне.');
@@ -2080,7 +2120,7 @@ async function removeSession(id, ownerEmail){
     return;
   }
 
-  await renderHistory();
+  await loadPatientHistory();
 }
 
   function fmtDate(iso){
@@ -2094,57 +2134,80 @@ async function removeSession(id, ownerEmail){
     }catch(_){ return todayDDMMYYYY(); }
   }
 
-async function renderHistory(){
+async function renderPatientHistory(items, email, isAdmin) {
+  const info = document.getElementById('accessUserInfo');
+  if (info) {
+    info.innerHTML =
+      'Увійшли як: <b>' + escapeHtml(email || '—') + '</b> ' +
+      '| admin: <b>' + (isAdmin ? 'yes' : 'no') + '</b>';
+  }
+
+  refreshHistoryScopeNote(!!isAdmin);
+
   const list = document.getElementById('historyList');
   if (!list) return;
 
-    const viewerEmail = getViewerEmail();
-  refreshHistoryScopeNote();
-  if (!viewerEmail){
-    list.innerHTML = '<div class="muted">Вкажіть email лікаря, щоб завантажити історію.</div>';
-    return;
-  }
-
-  const esc = (v)=>String(v||'').replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
-  const items = await readHistory();
-
-  if (!items.length){
+  if (!items.length) {
     list.innerHTML = '<div class="muted">Поки що порожньо. Натисни «Зберегти поточного».</div>';
     return;
   }
 
-  list.innerHTML = items.map(s => (
-    '<div class="row">'+
-      '<div class="meta"><div class="name">'+ esc(s.pib || s.name || 'Безіменний') +'</div><div class="date">'+ fmtDate(s.updatedAt || s.savedAt) +'</div></div>'+
-    '<div class="actions">'+
-        '<button class="btn" data-act="load" data-id="'+ esc(s.patientId) +'" data-owner="'+ esc(s.ownerEmail || '') +'">Відкрити</button>'+
-        '<button class="btn" data-act="delete" data-id="'+ esc(s.patientId) +'" data-owner="'+ esc(s.ownerEmail || '') +'">Видалити</button>'+
-      '</div>'+
+  list.innerHTML = items.map(item =>
+    '<div class="row">' +
+      '<div class="meta">' +
+        '<div class="name"><b>' + escapeHtml(item.pib || item.name || 'Без назви') + '</b></div>' +
+        '<div class="date">' + escapeHtml(fmtDate(item.updatedAt || item.savedAt || '')) + '</div>' +
+        '<div style="font-size:12px;opacity:.7;">owner: ' + escapeHtml(item.ownerEmail || '') + '</div>' +
+      '</div>' +
+      '<div class="actions">' +
+        '<button class="btn" data-act="load" data-id="' + escapeHtml(item.patientId || '') + '" data-owner="' + escapeHtml(item.ownerEmail || '') + '">Відкрити</button>' +
+        '<button class="btn" data-act="delete" data-id="' + escapeHtml(item.patientId || '') + '" data-owner="' + escapeHtml(item.ownerEmail || '') + '">Видалити</button>' +
+      '</div>' +
     '</div>'
-  )).join('');
+  ).join('');
 
- list.querySelectorAll('button[data-act="load"]').forEach(b =>
-  b.addEventListener('click', async (e) => {
-    await loadSession(
-      e.currentTarget.getAttribute('data-id'),
-      e.currentTarget.getAttribute('data-owner')
-    );
-    document.body.classList.remove('history-open');
-  })
-);
+  list.querySelectorAll('button[data-act="load"]').forEach(b =>
+    b.addEventListener('click', async (e) => {
+      await loadSession(
+        e.currentTarget.getAttribute('data-id'),
+        e.currentTarget.getAttribute('data-owner')
+      );
+      document.body.classList.remove('history-open');
+    })
+  );
 
-list.querySelectorAll('button[data-act="delete"]').forEach(b =>
-  b.addEventListener('click', async (e) => {
-    if (!confirm('Видалити цей запис?')) return;
-
-    await removeSession(
-      e.currentTarget.getAttribute('data-id'),
-      e.currentTarget.getAttribute('data-owner')
-    );
-  })
-);
-
+  list.querySelectorAll('button[data-act="delete"]').forEach(b =>
+    b.addEventListener('click', async (e) => {
+      if (!confirm('Видалити цей запис?')) return;
+      await removeSession(
+        e.currentTarget.getAttribute('data-id'),
+        e.currentTarget.getAttribute('data-owner')
+      );
+    })
+  );
 }
+
+async function loadPatientHistory() {
+  try {
+    const me = await getAccessIdentity();
+    const email = normalizeEmail(me && me.email);
+    if (!email) throw new Error('Failed to resolve viewer email');
+    const data = await readHistory(email);
+    await renderPatientHistory(data.items || [], data.email || email, !!data.admin || !!(me && me.admin));
+  } catch (err) {
+    console.error('loadPatientHistory failed:', err);
+    alert('Не вдалося завантажити історію пацієнтів');
+  }
+}
+  }
+
+ async function openHistoryModal() {
+  document.body.classList.add('history-open');
+  await loadAccessUserInfo();
+  await loadPatientHistory();
+}
+
+window.loadAccessUserInfo = loadAccessUserInfo;
 
 document.addEventListener('DOMContentLoaded', function(){
     const openBtn = document.getElementById('btnHistory');
@@ -2154,36 +2217,26 @@ document.addEventListener('DOMContentLoaded', function(){
     const emailInput = document.getElementById('historyUserEmail');
     const emailApplyBtn = document.getElementById('btnHistoryUserApply');
 
-    const initialEmail = localStorage.getItem(LS_USER_EMAIL_KEY) || '';
-    if (emailInput && initialEmail) emailInput.value = initialEmail;
-    refreshHistoryScopeNote();
-
 if (openBtn) openBtn.addEventListener('click', async function(){
-  document.body.classList.add('history-open');
-  await renderHistory();
+  await openHistoryModal();
 });
     if (closeBtn) closeBtn.addEventListener('click', function(){ document.body.classList.remove('history-open'); });
     if (backdrop) backdrop.addEventListener('click', function(){ document.body.classList.remove('history-open'); });
 if (saveBtn) saveBtn.addEventListener('click', async function(){ await saveCurrentToHistory(); });
 
-      if (emailApplyBtn) emailApplyBtn.addEventListener('click', async function(){
-      if (!persistViewerEmail(emailInput ? emailInput.value : '')) {
-        alert('Вкажіть коректний email лікаря.');
-        return;
-      }
-      refreshHistoryScopeNote();
-      await renderHistory();
+    if (emailApplyBtn) emailApplyBtn.addEventListener('click', async function(){
+      await loadAccessUserInfo();
+      await loadPatientHistory();
     });
     if (emailInput) emailInput.addEventListener('change', function(){
-      persistViewerEmail(emailInput.value || '');
-      refreshHistoryScopeNote();
+      // source of truth is /api/me
     });
   
 // Optional auto-save when PIB changes and user leaves the field
 const pib = document.getElementById('pib');
 if (pib){
   pib.addEventListener('change', async function(){
-    if (getViewerEmail()) await saveCurrentToHistory();
+    if ((await getAccessIdentity())?.email) await saveCurrentToHistory();
   });
 }
 });
@@ -2228,7 +2281,8 @@ document.addEventListener('DOMContentLoaded', function(){
 async function getHistoryRemote(viewerEmail) {
     if (!window.USE_REMOTE_API || !window.API_BASE) return { ok:false, items:[] };
   const v = encodeURIComponent(normalizeEmail(viewerEmail));
-  const scope = isAdminEmail(viewerEmail) ? 'all' : 'mine';
+  const me = await getAccessIdentity();
+  const scope = (me && me.admin) ? 'all' : 'mine';
   let res;
   try{
     res = await apiFetch('/api/history/list?viewerEmail=' + v + '&scope=' + scope, {
@@ -2248,15 +2302,15 @@ async function getHistoryRemote(viewerEmail) {
   return data;
 }
 
-async function loadPatientRemote(patientId, ownerEmail, viewerEmail) {
-    if (!window.USE_REMOTE_API || !window.API_BASE) return { ok:false, error:'API вимкнено' };
+async function loadPatientRemote(patientId, ownerEmail, viewerEmail, isAdmin) {
+  if (!window.USE_REMOTE_API || !window.API_BASE) return { ok:false, error:'API вимкнено' };
   let res;
   try{
     res = await apiFetch('/api/patient/get', {
       method: 'POST',
       credentials: (window.API_CREDENTIALS || 'omit'),
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-      body: JSON.stringify({ patientId, ownerEmail, viewerEmail, isAdmin: isAdminEmail(viewerEmail) })
+      body: JSON.stringify({ patientId, ownerEmail, viewerEmail, isAdmin: !!isAdmin })
     }, true);
   }catch(_){
     return { ok:false, error:'Серверне API тимчасово недоступне' };
@@ -2265,7 +2319,7 @@ async function loadPatientRemote(patientId, ownerEmail, viewerEmail) {
   let data = null;
   try { data = raw ? JSON.parse(raw) : null; } catch(_) {}
   if (!res.ok || !data || typeof data !== 'object') {
-    if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return loadPatientRemote(patientId, ownerEmail, viewerEmail);
+    if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return loadPatientRemote(patientId, ownerEmail, viewerEmail, isAdmin);
     return { ok:false, error:'Помилка завантаження з сервера' };
   }
   return data;
