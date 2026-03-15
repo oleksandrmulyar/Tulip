@@ -46,11 +46,11 @@ let state = JSON.parse(localStorage.getItem('pirads21_state_v635')||'null') || {
   "_ver":"6.3.5",
   "active":1,
   "colors":{"1":"#ff6b6b","2":"#4dabf7","3":"#38d9a9","4":"#ffd43b","5":"#845ef7"},
-  "lesions":{"1":{"sectors":[],"tr":"","ap":"","cc":"","t2":"","dwi":"","DCE":"","ellipses":{}},
-             "2":{"sectors":[],"tr":"","ap":"","cc":"","t2":"","dwi":"","DCE":"","ellipses":{}},
-             "3":{"sectors":[],"tr":"","ap":"","cc":"","t2":"","dwi":"","DCE":"","ellipses":{}},
-             "4":{"sectors":[],"tr":"","ap":"","cc":"","t2":"","dwi":"","DCE":"","ellipses":{}},
-             "5":{"sectors":[],"tr":"","ap":"","cc":"","t2":"","dwi":"","DCE":"","ellipses":{}}},
+  "lesions":{"1":{"sectors":[],"tr":"","ap":"","cc":"","t2":"","dwi":"","DCE":"","ellipses":{},"sv":"no","ece":"no","inv":""},
+             "2":{"sectors":[],"tr":"","ap":"","cc":"","t2":"","dwi":"","DCE":"","ellipses":{},"sv":"no","ece":"no","inv":""},
+             "3":{"sectors":[],"tr":"","ap":"","cc":"","t2":"","dwi":"","DCE":"","ellipses":{},"sv":"no","ece":"no","inv":""},
+             "4":{"sectors":[],"tr":"","ap":"","cc":"","t2":"","dwi":"","DCE":"","ellipses":{},"sv":"no","ece":"no","inv":""},
+             "5":{"sectors":[],"tr":"","ap":"","cc":"","t2":"","dwi":"","DCE":"","ellipses":{},"sv":"no","ece":"no","inv":""}},
   "prostate":{"tr":"","ap":"","cc":""},
   "offset":{"SagittalX":0,"SagittalY":0,"CoronalX":0,"CoronalY":0}
 };
@@ -64,6 +64,8 @@ try{
       L.dce = (L.DCE==='+'||L.DCE==='pos')?'pos':(L.DCE==='-'||L.DCE==='neg')?'neg':'';
     }
     if (L.dce===undefined) L.dce='';
+    if (L.sv!=='yes' && L.sv!=='no') L.sv='no';
+    if (L.ece!=='yes' && L.ece!=='no') L.ece='no';
   }
   save && save();
 }catch(_){}
@@ -642,7 +644,8 @@ function updateRow(n){
       if (Ls.sv === undefined && Ls.SV) { // normalize legacy if any
         Ls.sv = (String(Ls.SV).toLowerCase()==='yes' ? 'yes' : (String(Ls.SV).toLowerCase()==='no' ? 'no' : ''));
       }
-      sv.value = Ls.sv || '';
+      if (Ls.sv !== 'yes' && Ls.sv !== 'no') Ls.sv = 'no';
+      sv.value = Ls.sv;
       sv.onchange = (e)=>{
         Ls.sv = e.target.value; // 'yes' | 'no' | ''
         save && save();
@@ -657,7 +660,8 @@ function updateRow(n){
     const Le = state.lesions[String(n)] || (state.lesions[String(n)]={});
     const ece = document.getElementById('ece-'+n);
     if (ece){
-      ece.value = Le.ece || '';
+      if (Le.ece !== 'yes' && Le.ece !== 'no') Le.ece = 'no';
+      ece.value = Le.ece;
       ece.onchange = (e)=>{
         Le.ece = e.target.value; // 'yes' | 'no' | ''
         save && save();
@@ -1439,7 +1443,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try{ 
         if (window.state && window.state.lesions) { 
-          Object.keys(window.state.lesions).forEach(k=>{ window.state.lesions[k] = {sectors:[], tr:'', ap:'', cc:'', t2:'', dwi:'', dce:'', sv:'', ece:'', inv:''}; });
+          Object.keys(window.state.lesions).forEach(k=>{ window.state.lesions[k] = {sectors:[], tr:'', ap:'', cc:'', t2:'', dwi:'', dce:'', sv:'no', ece:'no', inv:''}; });
           window.state.active = 1;
         }
       }catch(_){ }
