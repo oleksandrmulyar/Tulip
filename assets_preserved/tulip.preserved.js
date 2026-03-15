@@ -2325,26 +2325,6 @@ if (pib){
 
 
 
-document.addEventListener('DOMContentLoaded', function(){
-  var pb = document.getElementById('printBtn');
-  if(pb){
-    pb.addEventListener('click', function(e){
-      try {
-        if (typeof buildReportText === 'function') { buildReportText(); }
-      } catch(_) {}
-      try {
-        var old = document.getElementById('_printArea'); if(old) old.remove();
-        var pa = document.createElement('div');
-        pa.id = '_printArea';
-        var rep = document.getElementById('report');
-        pa.innerHTML = rep ? rep.innerHTML : '';
-        document.body.appendChild(pa);
-        window.addEventListener('afterprint', function cleanup(){ try{ pa.remove(); }catch(_){} window.removeEventListener('afterprint', cleanup); });
-      } catch(_) {}
-      setTimeout(function(){ window.print(); }, 50);
-    }, {capture:true}); // capture to override earlier handlers
-  }
-});
 
 async function getHistoryRemote(viewerEmail) {
     if (!window.USE_REMOTE_API || !window.API_BASE) return { ok:false, items:[] };
@@ -2473,8 +2453,10 @@ async function savePatientRemote(payload) {
 
   document.addEventListener('DOMContentLoaded', function(){
     var pb = document.getElementById('printBtn');
-    if (!pb) return;
-    pb.addEventListener('click', printFromButton, { capture:true });
+    if (!pb || !pb.parentNode) return;
+    var clean = pb.cloneNode(true);
+    pb.parentNode.replaceChild(clean, pb);
+    clean.addEventListener('click', printFromButton, { capture:true });
   });
 })();
 
