@@ -10,7 +10,7 @@
 
 (function configureApiBase(){
   const explicit = (window.API_BASE || "").trim();
-  const legacyWorkerBase = "https://floral-firefly-15b5.oleksandrmulyar.workers.dev";
+  const legacyWorkerBase = (window.LEGACY_API_BASE || "").trim();
   const sameOriginBase = location.origin;
   const list = [explicit, sameOriginBase, legacyWorkerBase].filter(Boolean);
   window.API_BASE_CANDIDATES = Array.from(new Set(list));
@@ -743,7 +743,6 @@ async function apiFetch(path, init, retryAllowed){
         __apiBaseRetryLock = false;
       }
     }
-    disableRemoteApi('fetch-failed:' + (err && err.message ? err.message : 'network-error'));
     throw err;
   }
 }
@@ -774,9 +773,6 @@ async function apiPost(path, payload){
   if (!data || typeof data !== 'object') {
     if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) {
       return apiPost(path, payload);
-    }
-    if ([404, 405].includes(res.status)) {
-      disableRemoteApi('http-' + res.status);
     }
     throw new Error('Некоректна відповідь API');
   }
@@ -2246,8 +2242,7 @@ async function getHistoryRemote(viewerEmail) {
   let data = null;
   try { data = raw ? JSON.parse(raw) : null; } catch(_) {}
   if (!res.ok || !data || typeof data !== 'object') {
-        if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return getHistoryRemote(viewerEmail);
-    if ([404, 405].includes(res.status)) disableRemoteApi('http-' + res.status);
+    if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return getHistoryRemote(viewerEmail);
     return { ok:false, items:[] };
   }
   return data;
@@ -2270,8 +2265,7 @@ async function loadPatientRemote(patientId, ownerEmail, viewerEmail) {
   let data = null;
   try { data = raw ? JSON.parse(raw) : null; } catch(_) {}
   if (!res.ok || !data || typeof data !== 'object') {
-        if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return loadPatientRemote(patientId, ownerEmail, viewerEmail);
-    if ([404, 405].includes(res.status)) disableRemoteApi('http-' + res.status);
+    if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return loadPatientRemote(patientId, ownerEmail, viewerEmail);
     return { ok:false, error:'Помилка завантаження з сервера' };
   }
   return data;
@@ -2294,8 +2288,7 @@ async function savePatientRemote(payload) {
   let data = null;
   try { data = raw ? JSON.parse(raw) : null; } catch(_) {}
   if (!res.ok || !data || typeof data !== 'object') {
-        if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return savePatientRemote(payload);
-    if ([404, 405].includes(res.status)) disableRemoteApi('http-' + res.status);
+    if ([404, 405].includes(res.status) && tryNextApiBase('http-' + res.status)) return savePatientRemote(payload);
     return { ok:false, error:'Помилка серверного збереження' };
   }
   return data;
