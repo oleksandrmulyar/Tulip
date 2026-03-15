@@ -2379,4 +2379,68 @@ async function savePatientRemote(payload) {
 }
 
 
+
+
+(function(){
+  function cleanupPrintArea(){
+    var old = document.getElementById('_printArea');
+    if (old) { try { old.remove(); } catch(_){} }
+  }
+
+  async function ensureReportReady(){
+    var report = document.getElementById('report');
+    if (!report) return null;
+
+    var img = document.getElementById('reportImg');
+    if (img && !img.getAttribute('src')) {
+      if (typeof buildReportImages === 'function') await buildReportImages();
+    }
+    if (typeof buildReportText === 'function') await buildReportText();
+    report.style.display = 'block';
+    return report;
+  }
+
+  function injectPrintArea(report){
+    if (!report) return;
+    cleanupPrintArea();
+    var pa = document.createElement('div');
+    pa.id = '_printArea';
+    pa.innerHTML = report.innerHTML;
+    document.body.appendChild(pa);
+  }
+
+  async function printFromButton(e){
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    }
+    try {
+      var report = await ensureReportReady();
+      injectPrintArea(report);
+      setTimeout(function(){ window.print(); }, 30);
+    } catch(err) {
+      console.warn('Print fallback:', err);
+      window.print();
+    }
+    return false;
+  }
+
+  window.addEventListener('beforeprint', function(){
+    var report = document.getElementById('report');
+    if (report) injectPrintArea(report);
+  });
+
+  window.addEventListener('afterprint', cleanupPrintArea);
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var pb = document.getElementById('printBtn');
+    if (!pb) return;
+    var cleanPb = pb.cloneNode(true);
+    pb.parentNode.replaceChild(cleanPb, pb);
+    cleanPb.addEventListener('click', printFromButton);
+  });
+})();
+
+
 })();
