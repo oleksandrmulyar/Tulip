@@ -1985,6 +1985,37 @@ async function readHistory(viewerEmail){
 
 function uuid(){ return 'h-'+Math.random().toString(36).slice(2)+Date.now().toString(36); }
 
+function normalizePIBName(value){
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('uk-UA');
+}
+
+function pickPatientRecordByPIB(items, pib, ownerEmail){
+  if (!Array.isArray(items) || !items.length) return null;
+  const targetPIB = normalizePIBName(pib);
+  if (!targetPIB) return null;
+  const targetOwner = normalizeEmail(ownerEmail || '');
+
+  const candidates = items.filter(item => {
+    const itemPIB = normalizePIBName(item && (item.pib || item.name));
+    if (!itemPIB || itemPIB !== targetPIB) return false;
+    if (!targetOwner) return true;
+    return normalizeEmail(item && item.ownerEmail) === targetOwner;
+  });
+
+  if (!candidates.length) return null;
+
+  candidates.sort((a,b)=>{
+    const ta = Date.parse((a && (a.updatedAt || a.savedAt)) || '') || 0;
+    const tb = Date.parse((b && (b.updatedAt || b.savedAt)) || '') || 0;
+    return tb - ta;
+  });
+
+  return candidates[0] || null;
+}
+
   // Collect all input/select/textarea values
   function collectFormValues(){
     const data = [];
@@ -2148,10 +2179,18 @@ async function saveCurrentToHistory(){
   }
 
   const snap = snapshotCurrent();
+  const pib = snap.name || '';
+
+  let existingPatient = null;
+  try{
+    const history = await readHistory(viewerEmail);
+    existingPatient = pickPatientRecordByPIB(history && history.items, pib, viewerEmail);
+  }catch(_){ }
 
   const payload = {
+    patientId: existingPatient && existingPatient.patientId ? existingPatient.patientId : undefined,
     pib: snap.name || '',
-    ownerEmail: viewerEmail,
+    ownerEmail: normalizeEmail(existingPatient && existingPatient.ownerEmail) || viewerEmail,
     viewerEmail,
     isAdmin: !!(me && me.admin),
     snapshot: snap,
