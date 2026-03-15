@@ -1697,7 +1697,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ====== Wire UI ======
   document.addEventListener('DOMContentLoaded', async function(){
     var btn = document.getElementById('btnSaveImage');
-    if (btn) btn.addEventListener('click', function(ev){ ev.preventDefault(); exportAsImage(); });
+    if (btn) {
+      btn.addEventListener('click', function(ev){ ev.preventDefault(); exportAsImage(); });
+      btn.dataset.saveImageBound = '1';
+    }
     var choose = document.getElementById('btnChooseFolder');
     if (choose) choose.addEventListener('click', function(ev){ ev.preventDefault(); chooseSaveFolder(); });
 
@@ -1863,6 +1866,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function ensureImageHook(){
     const btn = document.getElementById('btnSaveImage');
     if (!btn) return;
+    if (btn.dataset.saveImageBound === '1') return;
     // Try to detect existing handler; if none, attach minimal one that calls html2canvas then saveDataUrl
     let attached = false;
     // If there is an existing listener, we won't remove it; this is a safety net.
@@ -1900,6 +1904,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const fname = filenameFromPIB() + '_' + todayDDMMYYYY() + (fmt === 'jpg' ? '.jpg' : '.png');
       await window.saveDataUrl(dataUrl, fname);
     }, { capture: true });
+    btn.dataset.saveImageBound = '1';
   }
   document.addEventListener('DOMContentLoaded', ensureImageHook);
 
