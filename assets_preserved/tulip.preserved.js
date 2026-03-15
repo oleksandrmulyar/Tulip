@@ -1439,6 +1439,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }catch(_){ }
 
+
+      document.querySelectorAll('#lesionChips .chip').forEach((chip, idx)=>{
+        chip.classList.toggle('active', idx===0);
+      });
+
       clearLocalPolygonStorage();
 
       // Reset colors to default if fields exist
@@ -1446,7 +1451,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = 'c'+(i+1);
         const el = document.getElementById(id);
         if(el){ el.value = clr; bubble(el); }
-        if(window.state && window.state.colors) window.state.colors[i] = clr;
+        if(window.state && window.state.colors) window.state.colors[String(i+1)] = clr;
       });
 
       if (typeof save==='function') try{ save(); }catch(_){ }
@@ -1458,8 +1463,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   document.addEventListener('DOMContentLoaded', function(){
-    const btn = document.getElementById('resetOffset') || Array.from(document.querySelectorAll('button,input[type="button"]')).find(b=>/(^|\s)скинути(\s|$)/i.test((b.innerText||b.value||'').trim()));
-    if (btn) btn.onclick = window.resetAllEverything;
+    const btnResetAll = document.getElementById('btnResetAll');
+    if (btnResetAll) btnResetAll.addEventListener('click', window.resetAllEverything);
   });
 })();
 
