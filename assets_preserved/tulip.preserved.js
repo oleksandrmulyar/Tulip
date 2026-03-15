@@ -834,6 +834,7 @@ async function buildReportText(){
   try{
     const data = await apiPost('/api/report', collectApiPayload());
     document.getElementById('reportText').innerHTML = data.html || '';
+    decorateReportLesionDots();
     if (typeof data.volume === 'number') {
       document.getElementById('volOut').textContent = (data.volume>0 ? data.volume.toFixed(1)+' мл' : '—');
     }
@@ -925,6 +926,33 @@ async function buildReportText(){
     }
   }catch(_){ }
 })();
+  decorateReportLesionDots();
+}
+
+
+function decorateReportLesionDots(){
+  try{
+    const rt = document.getElementById('reportText');
+    if (!rt) return;
+    const toColor = (n)=> (state && state.colors && state.colors[String(n)]) ? state.colors[String(n)] : '#1f77b4';
+    rt.querySelectorAll('b').forEach((b)=>{
+      const txt = String(b.textContent||'').trim();
+      const m = txt.match(/^Lesion\s+(\d+)\s*:?$/i);
+      if (!m) return;
+      if (b.querySelector('.lesion-dot')) return;
+      const n = m[1];
+      const dot = document.createElement('span');
+      dot.className = 'lesion-dot';
+      dot.style.display = 'inline-block';
+      dot.style.width = '10px';
+      dot.style.height = '10px';
+      dot.style.borderRadius = '50%';
+      dot.style.background = toColor(n);
+      dot.style.marginRight = '6px';
+      dot.style.verticalAlign = 'middle';
+      b.prepend(dot);
+    });
+  }catch(_){ }
 }
 
 function loadImage(url){ return new Promise(res=>{ const im=new Image(); im.onload=()=>res(im); im.src=url; }); }
