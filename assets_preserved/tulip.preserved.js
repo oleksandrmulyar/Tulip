@@ -570,8 +570,7 @@ function addPointAtCursor(id, x, y){
 
 // UI buttons
 document.getElementById('toggleEdit').addEventListener('click', ()=>{ editMode=!editMode; editSectorId=null; clearHandles(); draw(); });
-const toggleEllipseEditBtn=document.getElementById('toggleEllipseEdit');
-if(toggleEllipseEditBtn){ toggleEllipseEditBtn.addEventListener('click', ()=>{ draw(); }); }
+document.getElementById('toggleEllipseEdit').addEventListener('click', ()=>{ draw(); });
 document.getElementById('snapMarkers').addEventListener('click', ()=>{ [1,2,3,4,5].forEach(n=>{ const E=autoEllipse(n); if(!E) return; if(!state.lesions[String(n)].ellipses) state.lesions[String(n)].ellipses={}; state.lesions[String(n)].ellipses=E; }); save(); draw(); });
 
 // Offsets controls
@@ -1202,9 +1201,92 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+(function(){
+  function ensurePanel(){
+    let anchor = document.getElementById('overlay') || document.getElementById('baseimg');
+    if(!anchor){
+      const svgs = document.getElementsByTagName('svg');
+      if(svgs && svgs[0]) anchor = svgs[0];
+    }
+    if(!anchor) return null;
+    let panel = document.getElementById('rotPanel');
+    if(!panel){
+      panel = document.createElement('div');
+      panel.id='rotPanel';
+      panel.className='rot-panel';
+      anchor.parentNode.insertBefore(panel, anchor.nextSibling);
+    }
+    return panel;
+  }
 
-// Rotation controls panel removed per UI requirements.
+  function makeRow(i){
+    const idx = i-1;
+    const row = document.createElement('div');
+    row.className='rot-row';
+    row.dataset.lesion = String(idx);
+    row.innerHTML = ''
+      + '<span class="rot-title">L'+i+'</span>'
+      + '<label>Sag (°): <input type="range" min="-60" max="60" step="1" id="l'+i+'_rotSag_s" /></label>'
+      + '<input type="number" min="-60" max="60" step="1" id="l'+i+'_rotSag_n" style="width:64px">'
+      + '<label>Cor (°): <input type="range" min="-60" max="60" step="1" id="l'+i+'_rotCor_s" /></label>'
+      + '<input type="number" min="-60" max="60" step="1" id="l'+i+'_rotCor_n" style="width:64px">';
+    return row;
+  }
 
+  function mount(){
+    const panel = ensurePanel();
+    if(!panel) return;
+    // clear old children to avoid duplicates / mis-order
+    panel.innerHTML = '<div style="font-size:12px;margin-bottom:4px;">Rotation (by lesion, per plane)</div>';
+    window.state = window.state || {};
+    state.lesions = state.lesions || [];
+
+    for(let i=1;i<=5;i++){
+      const row = makeRow(i);
+      panel.appendChild(row);
+      const idx = i-1;
+      state.lesions[idx] = state.lesions[idx] || {};
+
+      const sSag = row.querySelector('#l'+i+'_rotSag_s');
+      const nSag = row.querySelector('#l'+i+'_rotSag_n');
+      const sCor = row.querySelector('#l'+i+'_rotCor_s');
+      const nCor = row.querySelector('#l'+i+'_rotCor_n');
+
+      const vSag = Number.isFinite(state.lesions[idx]?.rotSagDeg) ? state.lesions[idx].rotSagDeg
+              : Number.isFinite(state.lesions[idx+1]?.rotSagDeg) ? state.lesions[idx+1].rotSagDeg : 0;
+      const vCor = Number.isFinite(state.lesions[idx]?.rotCorDeg) ? state.lesions[idx].rotCorDeg
+              : Number.isFinite(state.lesions[idx+1]?.rotCorDeg) ? state.lesions[idx+1].rotCorDeg : 0;
+      sSag.value = vSag; nSag.value = vSag; sCor.value = vCor; nCor.value = vCor;
+
+      function apply(idxLocal){
+        const sag = parseFloat(nSag.value);
+        const cor = parseFloat(nCor.value);
+        // normalize targets: write to idx and idx+1 to cover off-by-one linkage in base code
+        const targets = [idxLocal, idxLocal+1];
+        targets.forEach(t=>{
+          state.lesions[t] = state.lesions[t] || {};
+          state.lesions[t].rotSagDeg = Number.isFinite(sag)? sag : 0;
+          state.lesions[t].rotCorDeg = Number.isFinite(cor)? cor : 0;
+        });
+        try{ if(typeof saveState==='function') saveState(); }catch(e){}
+        try{ if(typeof draw==='function') draw(); }catch(e){}
+      }
+      // Bind with explicit index to avoid closure/off-by-one
+      sSag.addEventListener('input', ()=>{ nSag.value = sSag.value; apply(idx); });
+      nSag.addEventListener('change', ()=>{ sSag.value = nSag.value; apply(idx); });
+      sCor.addEventListener('input', ()=>{ nCor.value = sCor.value; apply(idx); });
+      nCor.addEventListener('change', ()=>{ sCor.value = nCor.value; apply(idx); });
+    }
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', mount);
+  }else{
+    setTimeout(mount,0);
+  }
+  // Also remount after draw in case layout changes
+  window.addEventListener('resize', ()=>{ setTimeout(()=>{ if(document.getElementById('rotPanel')){} else mount(); }, 0); });
+})();
 
 
 
