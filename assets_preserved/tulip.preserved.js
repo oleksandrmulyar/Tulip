@@ -2016,6 +2016,37 @@ function pickPatientRecordByPIB(items, pib, ownerEmail){
   return candidates[0] || null;
 }
 
+function getPatientItemTimestamp(item){
+  return Date.parse((item && (item.updatedAt || item.savedAt)) || '') || 0;
+}
+
+function mergePatientHistoryByLatest(items){
+  if (!Array.isArray(items) || !items.length) return [];
+
+  const byPatient = new Map();
+  const fallback = [];
+
+  items.forEach(item => {
+    const pibKey = normalizePIBName(item && (item.pib || item.name));
+    const ownerKey = normalizeEmail(item && item.ownerEmail);
+
+    if (!pibKey) {
+      fallback.push(item);
+      return;
+    }
+
+    const key = ownerKey + '::' + pibKey;
+    const prev = byPatient.get(key);
+    if (!prev || getPatientItemTimestamp(item) > getPatientItemTimestamp(prev)) {
+      byPatient.set(key, item);
+    }
+  });
+
+  return Array.from(byPatient.values())
+    .concat(fallback)
+    .sort((a, b) => getPatientItemTimestamp(b) - getPatientItemTimestamp(a));
+}
+
   // Collect all input/select/textarea values
   function collectFormValues(){
     const data = [];
@@ -2341,7 +2372,8 @@ async function loadPatientHistory() {
     const email = normalizeEmail(me && me.email);
     if (!email) throw new Error('Failed to resolve viewer email');
     const data = await readHistory(email);
-    await renderPatientHistory(data.items || [], data.email || email, !!data.admin || !!(me && me.admin));
+    const mergedItems = mergePatientHistoryByLatest(data.items || []);
+    await renderPatientHistory(mergedItems, data.email || email, !!data.admin || !!(me && me.admin));
   } catch (err) {
     console.error('loadPatientHistory failed:', err);
     alert('Не вдалося завантажити історію пацієнтів');
