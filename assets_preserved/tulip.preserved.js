@@ -2316,35 +2316,16 @@ async function removeSession(id, ownerEmail){
     }catch(_){ return todayDDMMYYYY(); }
   }
 
-async function renderPatientHistory(items, email, isAdmin) {
-  const info = document.getElementById('accessUserInfo');
-  if (info) {
-    info.innerHTML =
-      'Увійшли як: <b>' + escapeHtml(email || '—') + '</b>';
-  }
+function filterPatientHistoryItems(items, query) {
+  const normalizedQuery = String(query || '').trim().toLowerCase();
+  if (!normalizedQuery) return items;
+  return items.filter(item => {
+    const pib = String(item && (item.pib || item.name) || '').toLowerCase();
+    return pib.includes(normalizedQuery);
+  });
+}
 
-  const list = document.getElementById('historyList');
-  if (!list) return;
-
-  if (!items.length) {
-    list.innerHTML = '<div class="muted">Поки що порожньо. Натисни «Зберегти».</div>';
-    return;
-  }
-
-  list.innerHTML = items.map(item =>
-    '<div class="row">' +
-      '<div class="meta">' +
-        '<div class="name"><b>' + escapeHtml(item.pib || item.name || 'Без назви') + '</b></div>' +
-        '<div class="date">' + escapeHtml(fmtDate(item.updatedAt || item.savedAt || '')) + '</div>' +
-        '<div style="font-size:12px;opacity:.7;">owner: ' + escapeHtml(item.ownerEmail || '') + '</div>' +
-      '</div>' +
-      '<div class="actions">' +
-        '<button class="btn" data-act="load" data-id="' + escapeHtml(item.patientId || '') + '" data-owner="' + escapeHtml(item.ownerEmail || '') + '">Відкрити</button>' +
-        '<button class="btn" data-act="delete" data-id="' + escapeHtml(item.patientId || '') + '" data-owner="' + escapeHtml(item.ownerEmail || '') + '">Видалити</button>' +
-      '</div>' +
-    '</div>'
-  ).join('');
-
+function bindHistoryListActions(list){
   list.querySelectorAll('button[data-act="load"]').forEach(b =>
     b.addEventListener('click', async (e) => {
       await loadSession(
@@ -2364,6 +2345,57 @@ async function renderPatientHistory(items, email, isAdmin) {
       );
     })
   );
+}
+
+function renderPatientHistoryList(items) {
+  const list = document.getElementById('historyList');
+  if (!list) return;
+
+  if (!items.length) {
+    const searchInput = document.getElementById('historySearch');
+    const hasQuery = !!(searchInput && searchInput.value && searchInput.value.trim());
+    list.innerHTML = hasQuery
+      ? '<div class="muted">Нічого не знайдено за вашим запитом.</div>'
+      : '<div class="muted">Поки що порожньо. Натисни «Зберегти».</div>';
+    return;
+  }
+
+  list.innerHTML = items.map(item =>
+    '<div class="row">' +
+      '<div class="meta">' +
+        '<div class="name"><b>' + escapeHtml(item.pib || item.name || 'Без назви') + '</b></div>' +
+        '<div class="date">' + escapeHtml(fmtDate(item.updatedAt || item.savedAt || '')) + '</div>' +
+        '<div style="font-size:12px;opacity:.7;">owner: ' + escapeHtml(item.ownerEmail || '') + '</div>' +
+      '</div>' +
+      '<div class="actions">' +
+        '<button class="btn" data-act="load" data-id="' + escapeHtml(item.patientId || '') + '" data-owner="' + escapeHtml(item.ownerEmail || '') + '">Відкрити</button>' +
+        '<button class="btn" data-act="delete" data-id="' + escapeHtml(item.patientId || '') + '" data-owner="' + escapeHtml(item.ownerEmail || '') + '">Видалити</button>' +
+      '</div>' +
+    '</div>'
+  ).join('');
+
+  bindHistoryListActions(list);
+}
+
+async function renderPatientHistory(items, email, isAdmin) {
+  const info = document.getElementById('accessUserInfo');
+  if (info) {
+    info.innerHTML =
+      'Увійшли як: <b>' + escapeHtml(email || '—') + '</b>';
+  }
+
+  const searchInput = document.getElementById('historySearch');
+  const apply = function(){
+    const filtered = filterPatientHistoryItems(items, searchInput ? searchInput.value : '');
+    renderPatientHistoryList(filtered);
+  };
+
+  if (searchInput){
+    searchInput.value = '';
+    searchInput.oninput = apply;
+  }
+
+  apply();
 }
 
 async function loadPatientHistory() {
