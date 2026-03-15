@@ -2199,7 +2199,6 @@ async function loadPatientHistory() {
     alert('Не вдалося завантажити історію пацієнтів');
   }
 }
-  }
 
  async function openHistoryModal() {
   document.body.classList.add('history-open');
