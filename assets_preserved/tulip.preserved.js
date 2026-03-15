@@ -494,6 +494,28 @@ function addEllipseHandles(n, view, color){
   const L=state.lesions[String(n)]; const E=L.ellipses[view]; if(!E) return;
   function mk(x,y,cur){ const c=document.createElementNS('http://www.w3.org/2000/svg','rect'); c.setAttribute('x',x-5); c.setAttribute('y',y-5); c.setAttribute('width',10); c.setAttribute('height',10); c.setAttribute('class','resize-handle'); c.addEventListener('pointerdown', function(e){ const r=svg.getBoundingClientRect(); const x2=e.clientX-r.left, y2=e.clientY-r.top; dragging={type:'ellipse-handle', lesion:n, view:view, handle:cur, dx:x2-x, dy:y2-y}; }); svg.appendChild(c); }
   const center=document.createElementNS('http://www.w3.org/2000/svg','circle'); center.setAttribute('cx',E.cx); center.setAttribute('cy',E.cy); center.setAttribute('r',6); center.setAttribute('fill','#fff'); center.setAttribute('stroke',color); center.addEventListener('pointerdown', function(e){ const r=svg.getBoundingClientRect(); dragging={type:'ellipse-center', lesion:n, view:view, dx:e.clientX-r.left-E.cx, dy:e.clientY-r.top-E.cy}; }); svg.appendChild(center);
+  const rotateDistance = E.ry + 18;
+  const rotAngle = (E.rot||0) - Math.PI/2;
+  const rotX = E.cx + Math.cos(rotAngle) * rotateDistance;
+  const rotY = E.cy + Math.sin(rotAngle) * rotateDistance;
+  const startX = E.cx + Math.cos(rotAngle) * E.ry;
+  const startY = E.cy + Math.sin(rotAngle) * E.ry;
+  const arm=document.createElementNS('http://www.w3.org/2000/svg','line');
+  arm.setAttribute('x1',startX); arm.setAttribute('y1',startY);
+  arm.setAttribute('x2',rotX); arm.setAttribute('y2',rotY);
+  arm.setAttribute('class','rotate-arm');
+  svg.appendChild(arm);
+  const rot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  rot.setAttribute('cx',rotX); rot.setAttribute('cy',rotY); rot.setAttribute('r',5.5);
+  rot.setAttribute('class','rotate-handle');
+  rot.setAttribute('stroke',color);
+  rot.addEventListener('pointerdown', function(e){
+    const r=svg.getBoundingClientRect();
+    const px=e.clientX-r.left, py=e.clientY-r.top;
+    dragging={type:'ellipse-rotate', lesion:n, view:view, angleOffset:Math.atan2(py-E.cy, px-E.cx)-(E.rot||0)};
+    e.preventDefault();
+  });
+  svg.appendChild(rot);
   mk(E.cx+E.rx, E.cy, 'east'); mk(E.cx-E.rx, E.cy, 'west'); mk(E.cx, E.cy-E.ry, 'north'); mk(E.cx, E.cy+E.ry, 'south');
 }
 
@@ -513,6 +535,11 @@ svg.addEventListener('pointermove', function(e){
     const x = e.clientX-r.left-dragging.dx, y = e.clientY-r.top-dragging.dy;
     if(dragging.handle==='east' || dragging.handle==='west') E.rx = Math.max(4, Math.abs(x - E.cx));
     if(dragging.handle==='north' || dragging.handle==='south') E.ry = Math.max(4, Math.abs(y - E.cy));
+    save(); draw();
+  } else if (dragging.type==='ellipse-rotate'){
+    const L=state.lesions[String(dragging.lesion)]; const E=L.ellipses[dragging.view]; const r=svg.getBoundingClientRect();
+    const x = e.clientX-r.left, y = e.clientY-r.top;
+    E.rot = Math.atan2(y-E.cy, x-E.cx) - dragging.angleOffset;
     save(); draw();
   }
 });
