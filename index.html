@@ -22,12 +22,19 @@
 <body>
 
 <!-- FORCE-VISIBLE INFO UI (self-contained) -->
-<div id="__info_fab" style="position:fixed;right:16px;top:64px;z-index:2147483647;pointer-events:auto;">
+<div id="__info_fab" style="position:fixed;right:16px;top:64px;z-index:2147483647;pointer-events:auto;display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
   <button id="__info_btn" type="button"
           style="background:#0f172a;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2)"
           onclick="(function(){var p=document.getElementById('__info_panel'),b=document.getElementById('__info_back');if(p&&b){p.style.display='block';b.style.display='block';document.body.style.overflow='hidden';}})()">
     Info
   </button>
+  <a id="__pirads_ra_btn"
+     href="https://radiologyassistant.nl/abdomen/prostate/prostate-cancer-pi-rads-v2-1"
+     target="_blank"
+     rel="noopener noreferrer"
+     style="background:#1d4ed8;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);text-decoration:none;display:inline-block;">
+    PI-RADS RA
+  </a>
 </div>
 <div id="__info_back" style="position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:2147483646"></div>
 <div id="__info_panel" role="dialog" aria-modal="true" aria-labelledby="__info_title"
