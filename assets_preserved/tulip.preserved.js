@@ -1458,7 +1458,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof window.redrawAll==='function') try{ window.redrawAll(); }catch(_){ }
       else if (typeof draw==='function') try{ draw(); }catch(_){ }
 
-      alert('Усе очищено до повного нуля ✅ (включно з кольорами)');
     }catch(e){ console.error(e); alert('Помилка під час скидання.'); }
   };
 
