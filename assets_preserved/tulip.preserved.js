@@ -2036,12 +2036,36 @@ function uuid(){ return 'h-'+Math.random().toString(36).slice(2)+Date.now().toSt
     return v || 'Безіменний';
   }
 
+    function collectSelectedSectors(){
+    const out = {};
+    for (let n=1; n<=5; n++){
+      const L = state && state.lesions ? state.lesions[String(n)] : null;
+      out[String(n)] = Array.isArray(L && L.sectors) ? L.sectors.slice() : [];
+    }
+    return out;
+  }
+
+  function applySelectedSectors(data){
+    if (!data || typeof data !== 'object' || !state || !state.lesions) return;
+    for (let n=1; n<=5; n++){
+      const k = String(n);
+      if (!state.lesions[k]) continue;
+      const sectors = data[k];
+      state.lesions[k].sectors = Array.isArray(sectors) ? sectors.slice() : [];
+    }
+    save();
+    if (typeof buildTable === 'function') buildTable();
+    if (typeof paint === 'function') paint();
+    if (typeof draw === 'function') draw();
+  }
+
   function snapshotCurrent(){
     return {
       id: uuid(),
       name: getPIB(),
       savedAt: nowISO(),
       form: collectFormValues(),
+      selectedSectors: collectSelectedSectors(),
       polygons: collectPolygons(),
       reportHTML: collectReport()
     };
@@ -2064,6 +2088,7 @@ async function saveCurrentToHistory(){
     isAdmin: !!(me && me.admin),
     snapshot: snap,
     form: snap.form || {},
+    selectedSectors: snap.selectedSectors || {},
     polygons: snap.polygons || {},
     reportHTML: snap.reportHTML || ''
   };
@@ -2091,6 +2116,7 @@ async function loadSession(id, ownerEmail){
 
   applyFormValues(s.form);
   applyPolygons(s.polygons);
+  applySelectedSectors(s.selectedSectors || ((res.data && res.data.selectedSectors) || null));
   applyReport(s.reportHTML);
     // refresh any derived UI after load (e.g., regenerate report preview if needed)
     // Try to trigger known functions if they exist
