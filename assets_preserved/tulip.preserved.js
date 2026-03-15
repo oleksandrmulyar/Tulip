@@ -2272,15 +2272,15 @@ async function loadPatientRemote(patientId, ownerEmail, viewerEmail) {
 }
 
 async function savePatientRemote(payload) {
-    if (!window.USE_REMOTE_API || !window.API_BASE) return { ok:false, error:'API вимкнено' };
+    if (!window.USE_REMOTE_API) return { ok:false, error:'API вимкнено' };
   let res;
   try{
-    res = await apiFetch('/api/patient/save', {
+    res = await fetch('/api/patient/save', {
       method: 'POST',
       credentials: (window.API_CREDENTIALS || 'omit'),
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify(payload)
-    }, true);
+    });
   }catch(_){
     return { ok:false, error:'Серверне API тимчасово недоступне' };
   }
