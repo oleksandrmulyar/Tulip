@@ -73,7 +73,7 @@ function save(){ localStorage.setItem('pirads21_state_v635', JSON.stringify(stat
 function savePolys(){ localStorage.setItem('pirads21_polys_v635', JSON.stringify(polys)); }
 
 const svg=document.getElementById('overlay');
-let editMode=false, editSectorId=null, dragging=null, ellipseEdit=true;
+let editMode=false, editSectorId=null, dragging=null;
 
 function allSectors(){ const out=[]; ['Base','Mid','Apex'].forEach(s=>{ ['R','L','C'].forEach(side=>{ if(!polys[s][side]) return; Object.keys(polys[s][side]).forEach(code=>{ out.push({"id":(s+':'+side+':'+code),"slice":s,"side":side,"code":code}); }); }); }); return out; }
 function absPoints(id){ const [slice,side,code]=id.split(':'); const b=sectorBoxes[slice]; return polys[slice][side][code].map(p=>[b.x+p[0]*b.w, b.y+(p[1]+AX_SHIFT)*b.h]); }
@@ -485,7 +485,7 @@ function drawEllipses(){
       txt.setAttribute('fill','#fff'); txt.setAttribute('stroke','#000'); txt.setAttribute('stroke-width','2'); txt.setAttribute('paint-order','stroke'); txt.setAttribute('style','pointer-events:none');
       const piTxt = (info.pi && info.pi!=='—') ? ('PI-RADS '+info.pi) : 'PI-RADS —';
       txt.textContent = piTxt; svg.appendChild(txt);
-      if(ellipseEdit) addEllipseHandles(n, view, color);
+      addEllipseHandles(n, view, color);
     }
   }
 }
@@ -543,7 +543,7 @@ function addPointAtCursor(id, x, y){
 
 // UI buttons
 document.getElementById('toggleEdit').addEventListener('click', ()=>{ editMode=!editMode; editSectorId=null; clearHandles(); draw(); });
-document.getElementById('toggleEllipseEdit').addEventListener('click', ()=>{ ellipseEdit=true; draw(); });
+document.getElementById('toggleEllipseEdit').addEventListener('click', ()=>{ draw(); });
 document.getElementById('snapMarkers').addEventListener('click', ()=>{ [1,2,3,4,5].forEach(n=>{ const E=autoEllipse(n); if(!E) return; if(!state.lesions[String(n)].ellipses) state.lesions[String(n)].ellipses={}; state.lesions[String(n)].ellipses=E; }); save(); draw(); });
 
 // Offsets controls
