@@ -1880,12 +1880,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (box) {
         box.innerHTML =
-          'Увійшли як: <b>' + escapeHtml(accessUserInfoCache.email || '—') + '</b> ' +
-          '| admin: <b>' + (accessUserInfoCache.admin ? 'yes' : 'no') + '</b>';
+          'Увійшли як: <b>' + escapeHtml(accessUserInfoCache.email || '—') + '</b>';
       }
 
-      const emailInput = document.getElementById('historyUserEmail');
-      if (emailInput) emailInput.value = accessUserInfoCache.email || '';
       localStorage.setItem(LS_USER_EMAIL_KEY, accessUserInfoCache.email || '');
       return accessUserInfoCache;
     } catch (err) {
@@ -1906,14 +1903,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return loadAccessUserInfo();
   }
 
-  function refreshHistoryScopeNote(isAdmin){
-    const note = document.getElementById('historyScopeNote');
-    if (!note) return;
-       note.textContent = isAdmin
-      ? 'Режим: адміністратор (доступ до всіх пацієнтів).'
-      : 'Режим: користувач (доступ лише до власних пацієнтів).';
-  }
-
+  
   function nowISO(){ return new Date().toISOString(); }
   function todayDDMMYYYY(){
     const d = new Date(); const dd=String(d.getDate()).padStart(2,'0');
@@ -2138,11 +2128,8 @@ async function renderPatientHistory(items, email, isAdmin) {
   const info = document.getElementById('accessUserInfo');
   if (info) {
     info.innerHTML =
-      'Увійшли як: <b>' + escapeHtml(email || '—') + '</b> ' +
-      '| admin: <b>' + (isAdmin ? 'yes' : 'no') + '</b>';
+      'Увійшли як: <b>' + escapeHtml(email || '—') + '</b>';
   }
-
-  refreshHistoryScopeNote(!!isAdmin);
 
   const list = document.getElementById('historyList');
   if (!list) return;
@@ -2213,8 +2200,6 @@ document.addEventListener('DOMContentLoaded', function(){
     const closeBtn = document.getElementById('btnHistoryClose');
     const saveBtn = document.getElementById('btnHistorySave');
     const backdrop = document.getElementById('historyBackdrop');
-    const emailInput = document.getElementById('historyUserEmail');
-    const emailApplyBtn = document.getElementById('btnHistoryUserApply');
 
 if (openBtn) openBtn.addEventListener('click', async function(){
   await openHistoryModal();
@@ -2223,13 +2208,6 @@ if (openBtn) openBtn.addEventListener('click', async function(){
     if (backdrop) backdrop.addEventListener('click', function(){ document.body.classList.remove('history-open'); });
 if (saveBtn) saveBtn.addEventListener('click', async function(){ await saveCurrentToHistory(); });
 
-    if (emailApplyBtn) emailApplyBtn.addEventListener('click', async function(){
-      await loadAccessUserInfo();
-      await loadPatientHistory();
-    });
-    if (emailInput) emailInput.addEventListener('change', function(){
-      // source of truth is /api/me
-    });
   
 // Optional auto-save when PIB changes and user leaves the field
 const pib = document.getElementById('pib');
