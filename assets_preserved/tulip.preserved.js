@@ -2059,6 +2059,43 @@ function uuid(){ return 'h-'+Math.random().toString(36).slice(2)+Date.now().toSt
     if (typeof draw === 'function') draw();
   }
 
+  function sectorsFromStateLike(stateLike){
+    if (!stateLike || typeof stateLike !== 'object' || !stateLike.lesions) return null;
+    const out = {};
+    for (let n=1; n<=5; n++){
+      const k = String(n);
+      const L = stateLike.lesions[k];
+      out[k] = Array.isArray(L && L.sectors) ? L.sectors.slice() : [];
+    }
+    return out;
+  }
+
+  function extractSelectedSectors(snapshot, responseData){
+    const direct = snapshot && snapshot.selectedSectors;
+    if (direct && typeof direct === 'object') return direct;
+
+    const fromResponse = responseData && responseData.selectedSectors;
+    if (fromResponse && typeof fromResponse === 'object') return fromResponse;
+
+    const fromSnapshotState = sectorsFromStateLike(snapshot && snapshot.state);
+    if (fromSnapshotState) return fromSnapshotState;
+
+    const fromResponseState = sectorsFromStateLike(responseData && responseData.state);
+    if (fromResponseState) return fromResponseState;
+
+    // Legacy snapshots may only contain localStorage dump under polygons.
+    try{
+      const raw = snapshot && snapshot.polygons && snapshot.polygons['pirads21_state_v635'];
+      if (typeof raw === 'string'){
+        const parsed = JSON.parse(raw);
+        const fromLegacy = sectorsFromStateLike(parsed);
+        if (fromLegacy) return fromLegacy;
+      }
+    }catch(_){ }
+
+    return null;
+  }
+
   function snapshotCurrent(){
     return {
       id: uuid(),
@@ -2113,10 +2150,11 @@ async function loadSession(id, ownerEmail){
   const res = await loadPatientRemote(id, ownerEmail, viewerEmail, !!(me && me.admin));
   const s = res && res.ok ? (res.data.snapshot || res.data) : null;
   if (!s) return;
+  const selectedSectors = extractSelectedSectors(s, res.data || null);
 
   applyFormValues(s.form);
   applyPolygons(s.polygons);
-  applySelectedSectors(s.selectedSectors || ((res.data && res.data.selectedSectors) || null));
+  applySelectedSectors(selectedSectors);
   applyReport(s.reportHTML);
     // refresh any derived UI after load (e.g., regenerate report preview if needed)
     // Try to trigger known functions if they exist
