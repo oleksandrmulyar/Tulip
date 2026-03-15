@@ -2316,12 +2316,18 @@ async function removeSession(id, ownerEmail){
     }catch(_){ return todayDDMMYYYY(); }
   }
 
-function filterPatientHistoryItems(items, query) {
+function filterPatientHistoryItems(items, query, isAdmin) {
   const normalizedQuery = String(query || '').trim().toLowerCase();
   if (!normalizedQuery) return items;
   return items.filter(item => {
     const pib = String(item && (item.pib || item.name) || '').toLowerCase();
-    return pib.includes(normalizedQuery);
+    if (pib.includes(normalizedQuery)) return true;
+    if (!isAdmin) return false;
+
+    const login = String(
+      item && (item.ownerLogin || item.login || item.ownerEmail || '')
+    ).toLowerCase();
+    return login.includes(normalizedQuery);
   });
 }
 
@@ -2386,12 +2392,15 @@ async function renderPatientHistory(items, email, isAdmin) {
 
   const searchInput = document.getElementById('historySearch');
   const apply = function(){
-    const filtered = filterPatientHistoryItems(items, searchInput ? searchInput.value : '');
+    const filtered = filterPatientHistoryItems(items, searchInput ? searchInput.value : '', !!isAdmin);
     renderPatientHistoryList(filtered);
   };
 
   if (searchInput){
     searchInput.value = '';
+    searchInput.placeholder = isAdmin
+      ? 'Пошук за ПІБ або логіном користувача'
+      : 'Пошук за ПІБ (будь-яка частина)';
     searchInput.oninput = apply;
   }
 
