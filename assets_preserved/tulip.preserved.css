@@ -15,23 +15,32 @@
   .resize-handle { fill:#fff; stroke:#333; stroke-width:1; pointer-events:all; cursor:nwse-resize; }
   .floating { position: fixed; top: 12px; right: 12px; display:flex; gap:8px; z-index:9999; }
   #report { display:none; padding: 14mm; width: 210mm; box-sizing: border-box; }
-  @media print {
-  body * { visibility: hidden !important; }
-  #report, #report * { visibility: visible !important; }
-  #report { position: absolute !important; left: 0 !important; top: 0 !important; display: block !important; }
-} #report { display:block !important } }
   .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
   input[type="range"]{ width: 220px; }
   table th, table td { border-bottom: 1px solid #eee; padding:6px; font-size:14px; vertical-align:top; }
 
-
-
 @media print {
-  @page { size: auto; margin: 0; } /* tries to suppress browser headers/footers */
+  @page { size: auto; margin: 10mm; }
   html, body { margin: 0 !important; padding: 0 !important; }
   body * { visibility: hidden !important; }
+
   #_printArea, #_printArea * { visibility: visible !important; }
-  #_printArea { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; }
+  #_printArea {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 190mm !important;
+  }
+
+  /* fallback for Ctrl+P if _printArea not injected */
+  #report, #report * { visibility: visible !important; }
+  #report {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    display: block !important;
+    width: 190mm !important;
+  }
 }
 
 
@@ -76,22 +85,6 @@ tr.lesion-sub td{ padding-top: 6px; padding-bottom: 10px; border-top: none; }
 
 
 
-        @page { size: A4 portrait; margin: 0; }
-        html, body { margin:0; padding:0; }
-        /* one-page layout with inner margins */
-        #sheet {
-          width: 210mm;
-          height: 297mm;
-          box-sizing: border-box;
-          padding: 10mm;
-          background: #fff;
-          overflow: hidden; /* prevent spill to page 2 */
-        }
-        #sheet * { box-sizing: border-box; }
-        /* report box fits inside sheet */
-        #report { width: 100%; height: auto; }
-        img, canvas, svg { max-width: 100%; height: auto; }
-        .page, .page-break { page-break-inside: avoid; }
       
 
 
