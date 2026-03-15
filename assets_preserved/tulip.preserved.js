@@ -1406,7 +1406,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function bubble(el){ ['input','change'].forEach(ev=> el.dispatchEvent(new Event(ev,{bubbles:true}))); }
   function set0(el){ if(!el) return;
     if(el.type==='checkbox' || el.type==='radio'){ el.checked=false; bubble(el); return; }
-    if(el.tagName==='SELECT'){ el.selectedIndex=0; bubble(el); return; }
+    if(el.tagName==='SELECT'){
+      var defaultIdx = Array.prototype.findIndex.call(el.options || [], function(opt){ return !!opt.defaultSelected; });
+      el.selectedIndex = defaultIdx >= 0 ? defaultIdx : 0;
+      bubble(el);
+      return;
+    }
     if(el.tagName==='TEXTAREA'){ el.value=''; bubble(el); return; }
     if(el.type){ el.value=''; try{ el.valueAsNumber = NaN; }catch(_){ } bubble(el); return; }
   }
