@@ -67,13 +67,11 @@
 <h3>Кнопки керування</h3>
 <ul>
   <li><b>Редагувати полігони:</b> режим зміни контурів секторів (додати/перемістити/видалити точки).</li>
-  <li><b>Редагувати маркери:</b> переміщення еліпсів уражень для ручної корекції.</li>
   <li><b>Автопозиція маркерів:</b> автоматично центрирує маркери в обраних секторах.</li>
 </ul>
 <h3>Налаштування маркерів</h3>
 <ul>
   <li><b>Кольори уражень:</b> Колір 1/2/3 для візуального розрізнення на схемах.</li>
-  <li><b>Зміщення еліпсів:</b> повзунки <i>Sagittal X/Y</i> та <i>Coronal X/Y</i> (від −100% до +100%). Кнопка «Скинути» повертає нулі.</li>
 </ul>
 <h3>Робота з полігонами</h3>
 <ul>
@@ -88,7 +86,7 @@
 <ol>
   <li>Введи TR/AP/CC (мм) і ПІБ.</li>
   <li>Відміть потрібні сектори на проекціях.</li>
-  <li>За потреби відкоригуй полігони/маркери, кольори та зміщення.</li>
+  <li>За потреби відкоригуй полігони та кольори.</li>
   <li>Переглянь сформований звіт праворуч і роздрукуй.</li>
 </ol>
 
@@ -155,18 +153,9 @@
       Колір 4: <input type="color" id="c4" value="#ffd43b">
       Колір 5: <input type="color" id="c5" value="#845ef7">
       <button id="toggleEdit" class="btn">Редагувати полігони</button>
-      <button id="toggleEllipseEdit" class="btn">Редагувати маркери</button>
       <button id="snapMarkers" class="btn">Автопозиція маркерів</button>
     </div>
 
-    <div class="row" style="margin-top:8px">
-      <span><b>Зміщення еліпсів (±100%)</b>:</span>
-      Sagittal X: <input id="offSagX" type="range" min="-100" max="100" step="1" value="0"><span id="offSagXVal">0%</span>
-      Sagittal Y: <input id="offSagY" type="range" min="-100" max="100" step="1" value="0"><span id="offSagYVal">0%</span>
-      Coronal X: <input id="offCorX" type="range" min="-100" max="100" step="1" value="0"><span id="offCorXVal">0%</span>
-      Coronal Y: <input id="offCorY" type="range" min="-100" max="100" step="1" value="0"><span id="offCorYVal">0%</span>
-      <button id="resetOffset" class="btn">Скинути</button>
-    </div>
 
   <div class="panel">
     <table style="width:100%;border-collapse:collapse">
