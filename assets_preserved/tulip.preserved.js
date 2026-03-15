@@ -1705,10 +1705,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if(btnImport) btnImport.classList.add('menu-moved');
 
     // Wire menu items (exact order requested)
+    const miSwitchAccount = document.getElementById('miSwitchAccount');
     const miChoose = document.getElementById('miChooseFolder');
     const miExport = document.getElementById('miExportPolys');
     const miImport = document.getElementById('miImportPolys');
 
+        if(miSwitchAccount) miSwitchAccount.addEventListener('click', async function(){
+      openDrawer(false);
+      try { localStorage.removeItem('pirads_user_email_v1'); } catch(_) {}
+
+      const logoutPaths = [
+        '/cdn-cgi/access/logout',
+        '/api/logout',
+        '/logout'
+      ];
+
+      for (const path of logoutPaths) {
+        try {
+          const res = await fetch(path, {
+            method: 'GET',
+            credentials: (window.API_CREDENTIALS || 'include'),
+            redirect: 'manual'
+          });
+          if (res && (res.ok || (res.status >= 300 && res.status < 400))) {
+            window.location.href = path;
+            return;
+          }
+        } catch(_) {}
+      }
+
+      window.location.href = '/cdn-cgi/access/logout';
+    });
     if(miChoose) miChoose.addEventListener('click', function(){
       openDrawer(false);
       if(btnChoose) btnChoose.click();
