@@ -19,7 +19,7 @@
 
 <link rel="stylesheet" href="assets_preserved/tulip.preserved.css">
 </head>
-<body>
+<body class="theme-dark">
 
 <!-- FORCE-VISIBLE INFO UI (self-contained) -->
 <div id="__info_fab" style="position:fixed;right:16px;top:64px;z-index:2147483647;pointer-events:auto;display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
@@ -34,7 +34,7 @@
      rel="noopener noreferrer"
      title="PI-RADS Radiology Assistant"
      aria-label="PI-RADS Radiology Assistant"
-     style="background:#1d4ed8;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);text-decoration:none;display:inline-block;">
+     style="background:#27272a;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);text-decoration:none;display:inline-block;">
     RA
   </a>
   <button id="__pirads_pz_btn"
@@ -43,7 +43,7 @@
           data-guide-img="assets_preserved/pz.png"
           title="PZ guide"
           aria-label="PZ guide"
-          style="background:#0ea5e9;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);">
+          style="background:#3f3f46;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);">
     PZ
   </button>
   <button id="__pirads_tz_btn"
@@ -52,7 +52,7 @@
           data-guide-img="assets_preserved/tz.png"
           title="TZ guide"
           aria-label="TZ guide"
-          style="background:#0891b2;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);">
+          style="background:#52525b;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);">
     TZ
   </button>
   <button id="__pirads_nodes_btn"
@@ -61,7 +61,7 @@
           data-guide-img="assets_preserved/nodes.png"
           title="Nodes guide"
           aria-label="Nodes guide"
-          style="background:#0284c7;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);">
+          style="background:#18181b;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);">
     NODES
   </button>
 </div>
@@ -1419,7 +1419,7 @@
     }
 
     var savedTheme = localStorage.getItem(storageKey);
-    applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
+    applyTheme(savedTheme === 'light' ? 'light' : 'dark');
 
     btn.addEventListener('click', function () {
       var nextTheme = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
