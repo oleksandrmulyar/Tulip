@@ -1315,6 +1315,7 @@
 <!-- GPT_HAMBURGER -->
 
 <button id="btnSideMenu" class="btn" aria-label="Меню" title="Меню">☰</button>
+<button id="themeToggle" class="btn" aria-label="Перемкнути тему" title="Перемкнути тему">🌙 Темна</button>
 
 <!-- GPT_SIDE_DRAWER -->
 
@@ -1402,6 +1403,29 @@
     if (closeBtn) closeBtn.addEventListener('click', closeGuide);
     if (back) back.addEventListener('click', closeGuide);
     window.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeGuide(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var storageKey = 'tulip-theme';
+    var btn = document.getElementById('themeToggle');
+    if (!btn) return;
+
+    function applyTheme(theme) {
+      var isDark = theme === 'dark';
+      document.body.classList.toggle('theme-dark', isDark);
+      btn.textContent = isDark ? '☀️ Світла' : '🌙 Темна';
+    }
+
+    var savedTheme = localStorage.getItem(storageKey);
+    applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
+
+    btn.addEventListener('click', function () {
+      var nextTheme = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
+      localStorage.setItem(storageKey, nextTheme);
+      applyTheme(nextTheme);
+    });
   })();
 </script>
 
