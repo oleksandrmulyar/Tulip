@@ -1265,6 +1265,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if(e){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); }
     await buildImages();
     await buildText();
+    try{
+      const identity = typeof window.getAccessIdentity === 'function' ? await window.getAccessIdentity() : null;
+      if (identity && identity.email && typeof window.saveCurrentToHistory === 'function') {
+        await window.saveCurrentToHistory();
+      }
+    }catch(err){
+      console.warn('Auto-save to history after report failed:', err);
+    }
     var rep = qs('#report'); if (rep) rep.style.display='block';
     return false;
   }
