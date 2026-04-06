@@ -40,7 +40,7 @@
   <button id="__pirads_pz_btn"
           type="button"
           data-guide-title="PZ"
-          data-guide-img="assets_preserved/guides/pz.png"
+          data-guide-img="https://radiologyassistant.nl/assets/prostate/pirads-v2-1/peripheral-zone.png"
           title="PZ guide"
           aria-label="PZ guide"
           style="background:#0ea5e9;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);">
@@ -49,7 +49,7 @@
   <button id="__pirads_tz_btn"
           type="button"
           data-guide-title="TZ"
-          data-guide-img="assets_preserved/guides/tz.png"
+          data-guide-img="https://radiologyassistant.nl/assets/prostate/pirads-v2-1/transition-zone.png"
           title="TZ guide"
           aria-label="TZ guide"
           style="background:#0891b2;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);">
@@ -58,7 +58,7 @@
   <button id="__pirads_nodes_btn"
           type="button"
           data-guide-title="NODES"
-          data-guide-img="assets_preserved/guides/nodes.png"
+          data-guide-img="https://upload.wikimedia.org/wikipedia/commons/0/08/Lymphatic_drainage_of_prostate.png"
           title="Nodes guide"
           aria-label="Nodes guide"
           style="background:#0284c7;color:#fff;border:0;border-radius:9999px;padding:10px 14px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);">
@@ -1366,10 +1366,6 @@
   </div>
   <div style="height:calc(100% - 46px);display:flex;align-items:center;justify-content:center;background:#020617;padding:10px;">
     <img id="__guide_img" alt="PI-RADS guide" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;">
-    <div id="__guide_err" style="display:none;color:#e5e7eb;text-align:center;max-width:680px;">
-      Не вдалося завантажити зображення.<br>
-      <a id="__guide_link" href="#" target="_blank" rel="noopener noreferrer" style="color:#93c5fd;">Відкрити зображення в новій вкладці</a>
-    </div>
   </div>
 </div>
 
@@ -1386,22 +1382,9 @@
       var panel = document.getElementById('__guide_panel');
       var back = document.getElementById('__guide_back');
       var img = document.getElementById('__guide_img');
-      var err = document.getElementById('__guide_err');
-      var link = document.getElementById('__guide_link');
       var titleNode = document.getElementById('__guide_title');
       if (!panel || !back || !img || !titleNode) return;
       titleNode.textContent = title;
-      if (err) err.style.display = 'none';
-      if (img) img.style.display = 'block';
-      if (link) link.href = imgUrl || '#';
-      img.onerror = function() {
-        img.style.display = 'none';
-        if (err) err.style.display = 'block';
-      };
-      img.onload = function() {
-        img.style.display = 'block';
-        if (err) err.style.display = 'none';
-      };
       img.src = imgUrl;
       panel.style.display = 'block';
       back.style.display = 'block';
