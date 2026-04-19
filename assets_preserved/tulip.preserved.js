@@ -915,8 +915,7 @@ async function buildReportText(){
     const sizes = (L.tr?L.tr:'—')+'x'+(L.ap?L.ap:'—')+'x'+(L.cc?L.cc:'—')+'mm';
 
     const lesionColor = (state.colors && state.colors[String(n)]) ? state.colors[String(n)] : '#1f77b4';
-    const lesionDot = '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+lesionColor+';margin-right:6px;vertical-align:middle;"></span>';
-
+    const lesionDot = '<span class="lesion-dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+lesionColor+';margin-right:6px;vertical-align:middle;"></span>';
     out += '<p><b>'+lesionDot+'Lesion '+n+':</b><br>' +
            sizes + '<br>' +
            'T2 - ' + t2 + 'pts, DWI - ' + dwi + 'pts' + (function(){
