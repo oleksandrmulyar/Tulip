@@ -857,12 +857,13 @@ document.getElementById('printBtn').addEventListener('click', async()=>{ if(docu
 async function buildReportText(){
   try{
     const data = await apiPost('/api/report', collectApiPayload());
-    document.getElementById('reportText').innerHTML = data.html || '';
-    decorateReportLesionDots();
+    // NOTE:
+    // Local PI-RADS calculation is the source of truth for both table and report.
+    // API-generated HTML can be out of sync with current client-side scoring rules,
+    // so we only reuse API volume (if present) and always build report text locally.
     if (typeof data.volume === 'number') {
       document.getElementById('volOut').textContent = (data.volume>0 ? data.volume.toFixed(1)+' мл' : '—');
     }
-    return;
   }catch(err){
     console.warn('API report fallback to local builder:', err);
   }
