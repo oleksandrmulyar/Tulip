@@ -1495,6 +1495,7 @@ async function checkLogin() {
 
 function openUsersAdmin() {
   document.getElementById('usersAdminModal').style.display = 'block';
+  loadUsersAdmin();
 }
 
 function closeUsersAdmin() {
@@ -1522,9 +1523,76 @@ async function createUserFromSite() {
     resultBox.textContent = 'Користувача створено: ' + data.username;
     document.getElementById('newUsername').value = '';
     document.getElementById('newPassword').value = '';
+    loadUsersAdmin();
   } else {
     resultBox.textContent = data.error || 'Помилка створення користувача';
   }
+}
+async function loadUsersAdmin() {
+  const box = document.getElementById('usersListBox');
+  box.innerHTML = 'Завантаження...';
+
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/users', {
+    credentials: 'include'
+  });
+
+  const data = await res.json();
+
+  if (!data.ok) {
+    box.textContent = data.error || 'Помилка завантаження';
+    return;
+  }
+
+  box.innerHTML = data.users.map(u => `
+    <div style="border:1px solid #ddd; padding:8px; margin:6px 0; border-radius:8px;">
+      <b>${u.username}</b> — ${u.role} — ${u.active ? 'активний' : 'вимкнений'}
+      <br>
+      <button onclick="changeUserPassword('${u.username}')">Змінити пароль</button>
+      <button onclick="toggleUserActive('${u.username}', ${u.active ? 0 : 1})">
+        ${u.active ? 'Вимкнути' : 'Увімкнути'}
+      </button>
+    </div>
+  `).join('');
+}
+
+async function changeUserPassword(username) {
+  const password = prompt('Новий пароль для ' + username);
+
+  if (!password) return;
+
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/password', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
+
+  if (!data.ok) {
+    alert(data.error || 'Помилка зміни пароля');
+    return;
+  }
+
+  alert('Пароль змінено');
+}
+
+async function toggleUserActive(username, active) {
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/active', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, active })
+  });
+
+  const data = await res.json();
+
+  if (!data.ok) {
+    alert(data.error || 'Помилка');
+    return;
+  }
+
+  loadUsersAdmin();
 }
 
 checkLogin();
@@ -1552,6 +1620,11 @@ checkLogin();
     <button onclick="closeUsersAdmin()">Закрити</button>
 
     <div id="usersAdminResult" style="margin-top:12px;"></div>
+
+    <hr>
+
+    <h4>Список користувачів</h4>
+    <div id="usersListBox"></div>
   </div>
 </div>
 </body>
