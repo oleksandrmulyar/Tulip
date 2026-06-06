@@ -150,6 +150,9 @@
 
 <div class="floating">
     <button id="btnHistory" class="btn">Історія</button>
+  <button id="adminUsersBtn" onclick="openUsersAdmin()" style="display:none;">
+    Користувачі
+  </button>
   <button id="btnHistorySave" class="btn">Зберегти</button>
   <button id="btnResetAll" class="btn">Очистити все</button>
   <button id="makeReport" class="btn">Звіт</button> <button id="btnSaveImage" class="btn">Зберегти як зображення</button> <select id="imgFormat" class="btn" style="margin-left:6px;padding:8px 10px;">
@@ -1464,8 +1467,7 @@ async function doLogin() {
     return;
   }
 
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('appRoot').style.display = 'block';
+  await checkLogin();
 }
 
 async function checkLogin() {
@@ -1478,14 +1480,79 @@ async function checkLogin() {
   if (data.ok) {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
+
+    if (data.admin) {
+      document.getElementById('adminUsersBtn').style.display = 'inline-block';
+    } else {
+      document.getElementById('adminUsersBtn').style.display = 'none';
+    }
   } else {
     document.getElementById('loginScreen').style.display = 'block';
     document.getElementById('appRoot').style.display = 'none';
+    document.getElementById('adminUsersBtn').style.display = 'none';
+  }
+}
+
+function openUsersAdmin() {
+  document.getElementById('usersAdminModal').style.display = 'block';
+}
+
+function closeUsersAdmin() {
+  document.getElementById('usersAdminModal').style.display = 'none';
+}
+
+async function createUserFromSite() {
+  const username = document.getElementById('newUsername').value.trim();
+  const password = document.getElementById('newPassword').value;
+  const role = document.getElementById('newRole').value;
+  const resultBox = document.getElementById('usersAdminResult');
+
+  resultBox.textContent = 'Створення...';
+
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/create', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, role })
+  });
+
+  const data = await res.json();
+
+  if (data.ok) {
+    resultBox.textContent = 'Користувача створено: ' + data.username;
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newPassword').value = '';
+  } else {
+    resultBox.textContent = data.error || 'Помилка створення користувача';
   }
 }
 
 checkLogin();
 </script>
+</div>
+
+<div id="usersAdminModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999;">
+  <div style="background:#fff; max-width:520px; margin:60px auto; padding:20px; border-radius:12px;">
+    <h3>Користувачі</h3>
+
+    <label>Логін</label>
+    <input id="newUsername" style="width:100%; margin-bottom:8px;" placeholder="doctor1">
+
+    <label>Пароль</label>
+    <input id="newPassword" type="password" style="width:100%; margin-bottom:8px;" placeholder="password">
+
+    <label>Роль</label>
+    <select id="newRole" style="width:100%; margin-bottom:12px;">
+      <option value="doctor">doctor</option>
+      <option value="admin">admin</option>
+      <option value="viewer">viewer</option>
+    </select>
+
+    <button onclick="createUserFromSite()">Створити</button>
+    <button onclick="closeUsersAdmin()">Закрити</button>
+
+    <div id="usersAdminResult" style="margin-top:12px;"></div>
+  </div>
 </div>
 </body>
 </html>
