@@ -1547,10 +1547,12 @@ async function loadUsersAdmin() {
     <div style="border:1px solid #ddd; padding:8px; margin:6px 0; border-radius:8px;">
       <b>${u.username}</b> — ${u.role} — ${u.active ? 'активний' : 'вимкнений'}
       <br>
-      <button onclick="changeUserPassword('${u.username}')">Змінити пароль</button>
+      <button onclick="changeUserPassword('${u.username}')">Пароль</button>
+      <button onclick="renameUser('${u.username}')">Перейменувати</button>
       <button onclick="toggleUserActive('${u.username}', ${u.active ? 0 : 1})">
         ${u.active ? 'Вимкнути' : 'Увімкнути'}
       </button>
+      <button onclick="deleteUser('${u.username}')">Видалити</button>
     </div>
   `).join('');
 }
@@ -1575,6 +1577,68 @@ async function changeUserPassword(username) {
   }
 
   alert('Пароль змінено');
+}
+
+async function renameUser(oldUsername) {
+  const newUsername = prompt(
+    'Новий логін для ' + oldUsername,
+    oldUsername
+  );
+
+  if (!newUsername || newUsername === oldUsername) return;
+
+  const res = await fetch(
+    'https://api.tulip-pirads.com/api/admin/user/rename',
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        oldUsername,
+        newUsername
+      })
+    }
+  );
+
+  const data = await res.json();
+
+  if (!data.ok) {
+    alert(data.error || 'Помилка');
+    return;
+  }
+
+  loadUsersAdmin();
+}
+
+async function deleteUser(username) {
+  if (!confirm('Видалити користувача ' + username + '?')) {
+    return;
+  }
+
+  const res = await fetch(
+    'https://api.tulip-pirads.com/api/admin/user/delete',
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username
+      })
+    }
+  );
+
+  const data = await res.json();
+
+  if (!data.ok) {
+    alert(data.error || 'Помилка');
+    return;
+  }
+
+  loadUsersAdmin();
 }
 
 async function toggleUserActive(username, active) {
