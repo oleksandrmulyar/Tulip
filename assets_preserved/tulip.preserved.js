@@ -757,7 +757,10 @@ async function apiFetch(path, init, retryAllowed){
   }
   const url = String(window.API_BASE).replace(/\/$/, '') + path;
   try{
-    return await fetch(url, init);
+    return await fetch(url, {
+  ...(init || {}),
+  credentials: 'include'
+});
   }catch(err){
     if (retryAllowed && !__apiBaseRetryLock && tryNextApiBase('fetch-failed')) {
       __apiBaseRetryLock = true;
@@ -784,7 +787,7 @@ async function apiPost(path, payload){
   try{
     res = await apiFetch(path, {
       method: 'POST',
-      credentials: (window.API_CREDENTIALS || 'omit'),
+      credentials: 'include',
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify(payload)
     }, true);
@@ -1727,7 +1730,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           const res = await fetch(path, {
             method: 'GET',
-            credentials: (window.API_CREDENTIALS || 'include'),
+            credentials: 'include',
             redirect: 'manual'
           });
           if (await canUseLogoutResponse(path, res)) {
@@ -1898,7 +1901,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch('/api/me', {
         method: 'GET',
-        credentials: (window.API_CREDENTIALS || 'include')
+        credentials: 'include'
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -2253,7 +2256,7 @@ async function removeSession(id, ownerEmail){
   try{
     res = await apiFetch('/api/patient/delete', {
       method: 'POST',
-      credentials: (window.API_CREDENTIALS || 'omit'),
+      credentials: 'include',
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify({ patientId: id, ownerEmail, viewerEmail, isAdmin: !!(me && me.admin) })
     }, true);
@@ -2463,7 +2466,7 @@ async function getHistoryRemote(viewerEmail) {
   try{
     res = await apiFetch('/api/history/list?viewerEmail=' + v + '&scope=' + scope, {
       method: 'GET',
-      credentials: (window.API_CREDENTIALS || 'omit')
+      credentials: 'include'
     }, true);
   }catch(_){
     return { ok:false, items:[] };
@@ -2484,7 +2487,7 @@ async function loadPatientRemote(patientId, ownerEmail, viewerEmail, isAdmin) {
   try{
     res = await apiFetch('/api/patient/get', {
       method: 'POST',
-      credentials: (window.API_CREDENTIALS || 'omit'),
+      credentials: 'include',
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify({ patientId, ownerEmail, viewerEmail, isAdmin: !!isAdmin })
     }, true);
@@ -2507,7 +2510,7 @@ async function savePatientRemote(payload) {
   try{
     res = await fetch('/api/patient/save', {
       method: 'POST',
-      credentials: (window.API_CREDENTIALS || 'omit'),
+      credentials: 'include',
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify(payload)
     });
