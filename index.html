@@ -1530,9 +1530,82 @@ async function checkLogin() {
   }
 }
 
-function openUsersAdmin() {
+let ADMIN_GROUPS = [];
+
+async function loadGroupsAdmin() {
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/groups', {
+    credentials: 'include'
+  });
+
+  const data = await res.json();
+
+  if (!data.ok) {
+    ADMIN_GROUPS = [];
+    return;
+  }
+
+  ADMIN_GROUPS = data.groups || [];
+
+  const select = document.getElementById('newGroup');
+  if (!select) return;
+
+  select.innerHTML =
+    '<option value="">Без групи / під admin</option>' +
+    ADMIN_GROUPS.map(g =>
+      `<option value="${g.id}">${g.name}</option>`
+    ).join('');
+}
+
+async function createGroupFromSite() {
+  const name = document.getElementById('newGroupName').value.trim();
+  const box = document.getElementById('groupsAdminResult');
+
+  if (!name) {
+    box.textContent = 'Введіть назву групи';
+    return;
+  }
+
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/group/create', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  });
+
+  const data = await res.json();
+
+  if (!data.ok) {
+    box.textContent = data.error || 'Помилка створення групи';
+    return;
+  }
+
+  box.textContent = 'Групу створено';
+  document.getElementById('newGroupName').value = '';
+  await loadGroupsAdmin();
+}
+
+async function openUsersAdmin() {
   document.getElementById('usersAdminModal').style.display = 'block';
-  loadUsersAdmin();
+  await loadGroupsAdmin();
+  await loadUsersAdmin();
+  updateGroupVisibility();
+}
+
+function updateGroupVisibility() {
+  const role = document.getElementById('newRole')?.value;
+  const group = document.getElementById('newGroup');
+  const label = document.getElementById('newGroupLabel');
+
+  if (!group || !label) return;
+
+  if (role === 'doctor' || role === 'viewer' || role === 'director') {
+    group.style.display = 'block';
+    label.style.display = 'block';
+  } else {
+    group.value = '';
+    group.style.display = 'none';
+    label.style.display = 'none';
+  }
 }
 
 function closeUsersAdmin() {
@@ -1543,6 +1616,7 @@ async function createUserFromSite() {
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value;
   const role = document.getElementById('newRole').value;
+  const group_id = document.getElementById('newGroup')?.value || '';
   const resultBox = document.getElementById('usersAdminResult');
 
   resultBox.textContent = 'Створення...';
@@ -1551,7 +1625,7 @@ async function createUserFromSite() {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, role })
+    body: JSON.stringify({ username, password, role, group_id })
   });
 
   const data = await res.json();
@@ -1582,7 +1656,7 @@ async function loadUsersAdmin() {
 
   box.innerHTML = data.users.map(u => `
     <div style="border:1px solid #ddd; padding:8px; margin:6px 0; border-radius:8px;">
-      <b>${u.username}</b> — ${u.role} — ${u.active ? 'активний' : 'вимкнений'}
+      <b>${u.username}</b> — ${u.role} — ${u.group_name || 'без групи'} — ${u.active ? 'активний' : 'вимкнений'}
       <br>
       <button onclick="changeUserPassword('${u.username}')">Пароль</button>
       <button onclick="renameUser('${u.username}')">Перейменувати</button>
@@ -1711,16 +1785,29 @@ checkLogin();
     <input id="newPassword" type="password" style="width:100%; margin-bottom:8px;" placeholder="password">
 
     <label>Роль</label>
-    <select id="newRole" style="width:100%; margin-bottom:12px;">
+    <select id="newRole" onchange="updateGroupVisibility()" style="width:100%; margin-bottom:12px;">
       <option value="doctor">doctor</option>
+      <option value="director">director</option>
       <option value="admin">admin</option>
       <option value="viewer">viewer</option>
+    </select>
+
+    <label id="newGroupLabel">Група</label>
+    <select id="newGroup" style="width:100%; margin-bottom:12px;">
+      <option value="">Без групи / під admin</option>
     </select>
 
     <button onclick="createUserFromSite()">Створити</button>
     <button onclick="closeUsersAdmin()">Закрити</button>
 
     <div id="usersAdminResult" style="margin-top:12px;"></div>
+
+    <hr>
+
+    <h4>Групи</h4>
+    <input id="newGroupName" placeholder="Назва групи" style="width:100%; margin-bottom:8px;">
+    <button onclick="createGroupFromSite()">Створити групу</button>
+    <div id="groupsAdminResult" style="margin-top:8px;"></div>
 
     <hr>
 
