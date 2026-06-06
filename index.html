@@ -20,6 +20,15 @@
 <link rel="stylesheet" href="assets_preserved/tulip.preserved.css">
 </head>
 <body class="theme-dark">
+<div id="loginScreen">
+  <h2>Вхід</h2>
+  <input id="loginUsername" placeholder="Логін">
+  <input id="loginPassword" type="password" placeholder="Пароль">
+  <button onclick="doLogin()">Увійти</button>
+  <div id="loginError"></div>
+</div>
+
+<div id="appRoot" style="display:none;">
 
 <!-- FORCE-VISIBLE INFO UI (self-contained) -->
 <div id="__info_fab" style="position:fixed;right:16px;top:64px;z-index:2147483647;pointer-events:auto;display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
@@ -1434,5 +1443,49 @@
 
 
 <script src="assets_preserved/tulip.preserved.js"></script>
+<script>
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+
+  const res = await fetch('https://api.tulip-pirads.com/api/login', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await res.json();
+
+  if (!data.ok) {
+    document.getElementById('loginError').textContent = data.error || 'Помилка входу';
+    return;
+  }
+
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'block';
+}
+
+async function checkLogin() {
+  const res = await fetch('https://api.tulip-pirads.com/api/me', {
+    credentials: 'include'
+  });
+
+  const data = await res.json();
+
+  if (data.ok) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appRoot').style.display = 'block';
+  } else {
+    document.getElementById('loginScreen').style.display = 'block';
+    document.getElementById('appRoot').style.display = 'none';
+  }
+}
+
+checkLogin();
+</script>
+</div>
 </body>
 </html>
