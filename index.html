@@ -19,14 +19,28 @@
 
 <link rel="stylesheet" href="assets_preserved/tulip.preserved.css">
 </head>
-<body class="theme-dark">
-<div id="loginScreen">
-  <h2>Вхід</h2>
-  <input id="loginUsername" placeholder="Логін">
-  <input id="loginPassword" type="password" placeholder="Пароль">
-  <button onclick="doLogin()">Увійти</button>
-  <div id="loginError"></div>
-</div>
+<body>
+<main id="loginScreen" aria-labelledby="loginTitle">
+  <form id="loginForm" class="login-card" autocomplete="on">
+    <div class="login-brand" aria-hidden="true">🌷</div>
+    <p class="login-eyebrow">PI-RADS 2.1</p>
+    <h1 id="loginTitle">Вхід до Tulip</h1>
+    <p class="login-subtitle">Увійдіть, щоб продовжити роботу зі звітами та історією пацієнтів.</p>
+
+    <label class="login-field" for="loginUsername">
+      <span>Логін</span>
+      <input id="loginUsername" name="username" type="text" placeholder="Ваш логін" autocomplete="username" required autofocus>
+    </label>
+
+    <label class="login-field" for="loginPassword">
+      <span>Пароль</span>
+      <input id="loginPassword" name="password" type="password" placeholder="Ваш пароль" autocomplete="current-password" required>
+    </label>
+
+    <button id="loginSubmit" class="login-submit" type="submit">Увійти</button>
+    <div id="loginError" role="alert" aria-live="polite"></div>
+  </form>
+</main>
 
 <div id="appRoot" style="display:none;">
 
@@ -1431,7 +1445,7 @@
     }
 
     var savedTheme = localStorage.getItem(storageKey);
-    applyTheme(savedTheme === 'light' ? 'light' : 'dark');
+    applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
 
     btn.addEventListener('click', function () {
       var nextTheme = document.body.classList.contains('theme-dark') ? 'light' : 'dark';
@@ -1448,27 +1462,51 @@
 <script src="assets_preserved/tulip.preserved.js"></script>
 <script>
 async function doLogin() {
-  const username = document.getElementById('loginUsername').value.trim();
-  const password = document.getElementById('loginPassword').value;
+  const usernameInput = document.getElementById('loginUsername');
+  const passwordInput = document.getElementById('loginPassword');
+  const errorBox = document.getElementById('loginError');
+  const submitBtn = document.getElementById('loginSubmit');
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value;
 
-  const res = await fetch('https://api.tulip-pirads.com/api/login', {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ username, password })
-  });
-
-  const data = await res.json();
-
-  if (!data.ok) {
-    document.getElementById('loginError').textContent = data.error || 'Помилка входу';
-    return;
+  if (errorBox) errorBox.textContent = '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Входимо…';
   }
 
-  await checkLogin();
+  try {
+    const res = await fetch('https://api.tulip-pirads.com/api/login', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      if (errorBox) errorBox.textContent = data.error || 'Помилка входу';
+      return;
+    }
+
+    await checkLogin();
+  } catch (err) {
+    if (errorBox) errorBox.textContent = 'Не вдалося підключитися до сервера';
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Увійти';
+    }
+  }
 }
+
+document.getElementById('loginForm').addEventListener('submit', function(event) {
+  event.preventDefault();
+  doLogin();
+});
 
 async function checkLogin() {
   const res = await fetch('https://api.tulip-pirads.com/api/me', {
@@ -1487,7 +1525,7 @@ async function checkLogin() {
       document.getElementById('adminUsersBtn').style.display = 'none';
     }
   } else {
-    document.getElementById('loginScreen').style.display = 'block';
+    document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appRoot').style.display = 'none';
     document.getElementById('adminUsersBtn').style.display = 'none';
   }
