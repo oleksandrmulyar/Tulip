@@ -1860,7 +1860,7 @@ async function loadUsersAdmin() {
     const username = String(u.username || '');
     const safeUsername = escapeAdminHtml(username);
     const safeRole = escapeAdminHtml(u.role || 'без ролі');
-    const safeGroup = escapeAdminHtml(u.group_name || 'без групи');
+    const safeGroup = escapeAdminHtml(getUserGroupName(u) || 'без групи');
     const active = Boolean(u.active);
 
     return `
