@@ -1506,103 +1506,6 @@ document.getElementById('loginForm').addEventListener('submit', function(event) 
   doLogin();
 });
 
-let CURRENT_ADMIN_USER = null;
-
-function normalizeRole(value) {
-  return String(value || '').trim().toLowerCase();
-}
-
-function normalizeId(value) {
-  if (value === null || value === undefined) return '';
-  return String(value).trim();
-}
-
-function normalizeName(value) {
-  return String(value || '').trim().toLowerCase();
-}
-
-function firstDefined(...values) {
-  return values.find(value => value !== undefined && value !== null && String(value).trim() !== '');
-}
-
-function getUserGroupId(user) {
-  return normalizeId(firstDefined(
-    user?.group_id,
-    user?.groupId,
-    user?.group?.id,
-    user?.group?.group_id,
-    user?.user?.group_id,
-    user?.user?.groupId,
-    user?.user?.group?.id
-  ));
-}
-
-function getUserGroupName(user) {
-  return String(firstDefined(
-    user?.group_name,
-    user?.groupName,
-    user?.group?.name,
-    user?.group?.group_name,
-    user?.user?.group_name,
-    user?.user?.groupName,
-    user?.user?.group?.name
-  ) || '').trim();
-}
-
-function buildCurrentAdminUser(data) {
-  const role = normalizeRole(firstDefined(data.role, data.user?.role));
-  const groupId = getUserGroupId(data);
-  const groupName = getUserGroupName(data);
-
-  return {
-    admin: Boolean(data.admin),
-    role,
-    groupId,
-    groupName,
-    isDirector: !data.admin && role === 'director'
-  };
-}
-
-function userBelongsToDirectorGroup(user) {
-  if (!CURRENT_ADMIN_USER?.isDirector) return true;
-
-  const directorGroupId = normalizeId(CURRENT_ADMIN_USER.groupId);
-  const userGroupId = getUserGroupId(user);
-  if (directorGroupId) return userGroupId === directorGroupId;
-
-  const directorGroupName = normalizeName(CURRENT_ADMIN_USER.groupName);
-  const userGroupName = normalizeName(getUserGroupName(user));
-  return Boolean(directorGroupName && userGroupName && userGroupName === directorGroupName);
-}
-
-function applyDirectorAdminUi() {
-  const isDirector = Boolean(CURRENT_ADMIN_USER?.isDirector);
-  const roleSelect = document.getElementById('newRole');
-  const groupSelect = document.getElementById('newGroup');
-  const createGroupSection = document.getElementById('createGroupSection');
-  const subtitle = document.getElementById('usersAdminSubtitle');
-
-  if (roleSelect) {
-    Array.from(roleSelect.options).forEach(option => {
-      option.hidden = isDirector && option.value !== 'doctor';
-      option.disabled = isDirector && option.value !== 'doctor';
-    });
-    if (isDirector) roleSelect.value = 'doctor';
-  }
-
-  if (groupSelect) {
-    groupSelect.disabled = isDirector;
-    groupSelect.title = isDirector ? 'Директор створює користувачів тільки у своїй групі' : '';
-  }
-
-  if (createGroupSection) createGroupSection.style.display = isDirector ? 'none' : '';
-  if (subtitle) {
-    subtitle.textContent = isDirector
-      ? 'Директор бачить і редагує користувачів тільки у своїй групі, а створювати може лише doctor.'
-      : 'Створення користувачів, групи та керування доступом в одному прокручуваному вікні.';
-  }
-}
-
 async function checkLogin() {
   const res = await fetch('https://api.tulip-pirads.com/api/me', {
     credentials: 'include'
@@ -1611,14 +1514,13 @@ async function checkLogin() {
   const data = await res.json();
 
   if (data.ok) {
-    CURRENT_ADMIN_USER = buildCurrentAdminUser(data);
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
 
-    const canManageUsers = CURRENT_ADMIN_USER.admin || CURRENT_ADMIN_USER.isDirector;
+        const canManageUsers = data.admin || data.role === 'director';
     document.getElementById('adminUsersBtn').style.display = canManageUsers ? 'inline-block' : 'none';
   } else {
-    CURRENT_ADMIN_USER = null;
+    const canManageUsers = data.admin || data.role === 'director';
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appRoot').style.display = 'none';
     document.getElementById('adminUsersBtn').style.display = 'none';
@@ -1626,68 +1528,34 @@ async function checkLogin() {
 }
 
 let ADMIN_GROUPS = [];
-let DIRECTOR_VISIBLE_USERNAMES = new Set();
 
 async function loadGroupsAdmin() {
-  let data = null;
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/groups', {
+    credentials: 'include'
+  });
 
-  try {
-    const res = await fetch('https://api.tulip-pirads.com/api/admin/groups', {
-      credentials: 'include'
-    });
-    data = await res.json();
-  } catch (err) {
-    console.error('loadGroupsAdmin failed:', err);
-  }
+  const data = await res.json();
 
-  if (!data?.ok) {
+  if (!data.ok) {
     ADMIN_GROUPS = [];
-    applyDirectorAdminUi();
     return;
   }
 
   ADMIN_GROUPS = data.groups || [];
-  updateDirectorGroupFromKnownData();
 
   const select = document.getElementById('newGroup');
   if (!select) return;
 
-  if (CURRENT_ADMIN_USER?.isDirector) {
-    const ownGroupId = normalizeId(CURRENT_ADMIN_USER.groupId);
-    const ownGroupName = CURRENT_ADMIN_USER.groupName || 'моя група';
-    const ownGroup = ADMIN_GROUPS.find(g => {
-      if (ownGroupId) return normalizeId(g.id) === ownGroupId;
-      return normalizeName(g.name) === normalizeName(ownGroupName);
-    });
-    const value = normalizeId(ownGroup?.id || ownGroupId);
-    const label = ownGroup?.name || ownGroupName;
-    if (value) CURRENT_ADMIN_USER.groupId = value;
-    if (label) CURRENT_ADMIN_USER.groupName = label;
-
-    select.innerHTML = value
-      ? `<option value="${escapeAdminHtml(value)}">${escapeAdminHtml(label)}</option>`
-      : '<option value="">Групу директора не визначено</option>';
-    select.value = value;
-    applyDirectorAdminUi();
-    return;
-  }
-
   select.innerHTML =
     '<option value="">Без групи / під admin</option>' +
     ADMIN_GROUPS.map(g =>
-      `<option value="${escapeAdminHtml(g.id)}">${escapeAdminHtml(g.name)}</option>`
-    ).join('');
-  applyDirectorAdminUi();
+      `<option value="${g.id}">${g.name}</option>`
+                    ).join('');
 }
 
 async function createGroupFromSite() {
   const name = document.getElementById('newGroupName').value.trim();
   const box = document.getElementById('groupsAdminResult');
-
-  if (CURRENT_ADMIN_USER?.isDirector) {
-    box.textContent = 'Директор не може створювати групи';
-    return;
-  }
 
   if (!name) {
     box.textContent = 'Введіть назву групи';
@@ -1717,20 +1585,10 @@ async function openUsersAdmin() {
   const modal = document.getElementById('usersAdminModal');
   if (modal) modal.style.display = 'block';
   document.body.style.overflow = 'hidden';
-  applyDirectorAdminUi();
-
-  if (CURRENT_ADMIN_USER?.isDirector) {
-    await loadUsersAdmin();
-    await ensureDirectorGroupLoaded();
-    updateGroupVisibility();
-    applyDirectorAdminUi();
-    return;
-  }
 
   await loadGroupsAdmin();
   await loadUsersAdmin();
   updateGroupVisibility();
-  applyDirectorAdminUi();
 }
 
 function updateGroupVisibility() {
@@ -1739,16 +1597,6 @@ function updateGroupVisibility() {
   const label = document.getElementById('newGroupLabel');
 
   if (!group || !label) return;
-
-  if (CURRENT_ADMIN_USER?.isDirector) {
-    group.style.display = 'block';
-    label.style.display = 'block';
-    group.disabled = true;
-    group.value = normalizeId(CURRENT_ADMIN_USER.groupId);
-    return;
-  }
-
-  group.disabled = false;
 
   if (role === 'doctor' || role === 'viewer' || role === 'director') {
     group.style.display = 'block';
@@ -1792,11 +1640,6 @@ function bindUsersAdminListActions(box) {
     const username = button.dataset.username || '';
     const action = button.dataset.userAction;
 
-    if (CURRENT_ADMIN_USER?.isDirector && !DIRECTOR_VISIBLE_USERNAMES.has(username)) {
-      alert('Директор може редагувати тільки користувачів своєї групи');
-      return;
-    }
-
     if (action === 'password') changeUserPassword(username);
     if (action === 'rename') renameUser(username);
     if (action === 'toggle') toggleUserActive(username, Number(button.dataset.nextActive));
@@ -1804,46 +1647,23 @@ function bindUsersAdminListActions(box) {
   });
 }
 
-function userAdminEndpoint(action) {
-  const scope = CURRENT_ADMIN_USER?.isDirector ? 'director' : 'admin';
-  return `https://api.tulip-pirads.com/api/${scope}/user/${action}`;
-}
-
-async function postUserAdminAction(action, payload) {
-  const res = await fetch(userAdminEndpoint(action), {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  return res.json();
-}
-
 async function createUserFromSite() {
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value;
   const role = document.getElementById('newRole').value;
-  let group_id = document.getElementById('newGroup')?.value || '';
+  const group_id = document.getElementById('newGroup')?.value || '';
   const resultBox = document.getElementById('usersAdminResult');
 
-  if (CURRENT_ADMIN_USER?.isDirector) {
-    group_id = normalizeId(CURRENT_ADMIN_USER.groupId);
-    if (!group_id) {
-      resultBox.textContent = 'Не вдалося визначити групу директора';
-      return;
-    }
-    if (role !== 'doctor') {
-      resultBox.textContent = 'Директор може створювати тільки користувачів doctor';
-      return;
-    }
-  }
-
   resultBox.textContent = 'Створення...';
 
-  resultBox.textContent = 'Створення...';
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/create', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, role, group_id })
+        });
 
-  const data = await postUserAdminAction('create', { username, password, role, group_id });
+    const data = await res.json();
 
   if (data.ok) {
     resultBox.textContent = 'Користувача створено: ' + data.username;
@@ -1859,42 +1679,29 @@ async function loadUsersAdmin() {
   bindUsersAdminListActions(box);
   box.innerHTML = '<div class="users-admin-empty">Завантаження...</div>';
 
-  let data = null;
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/users', {
+    credentials: 'include'
+  });
+  
+  const data = await res.json();
 
-  try {
-    const res = await fetch('https://api.tulip-pirads.com/api/admin/users', {
-      credentials: 'include'
-    });
-    data = await res.json();
-  } catch (err) {
-    console.error('loadUsersAdmin failed:', err);
-  }
-
-  if (!data?.ok) {
-    box.innerHTML = `<div class="users-admin-empty">${escapeAdminHtml(data?.error || 'Помилка завантаження')}</div>`;
+  if (!data.ok) {
+    box.innerHTML = `<div class="users-admin-empty">${escapeAdminHtml(data.error || 'Помилка завантаження')}</div>`;
     return;
   }
 
-  const users = (data.users || []).filter(userBelongsToDirectorGroup);
-  DIRECTOR_VISIBLE_USERNAMES = new Set(users.map(u => String(u.username || '')));
+    const users = data.users || [];
 
   if (!users.length) {
-    box.innerHTML = CURRENT_ADMIN_USER?.isDirector
-      ? '<div class="users-admin-empty">У вашій групі користувачів поки немає</div>'
-      : '<div class="users-admin-empty">Користувачів поки немає</div>';
+    box.innerHTML = '<div class="users-admin-empty">Користувачів поки немає</div>';
     return;
-  }
-
-  if (CURRENT_ADMIN_USER?.isDirector && !directorGroupValue()) {
-    const firstGroupName = getUserGroupName(users.find(u => getUserGroupName(u)) || {});
-    if (firstGroupName) setDirectorGroup('', firstGroupName);
   }
 
   box.innerHTML = users.map(u => {
     const username = String(u.username || '');
     const safeUsername = escapeAdminHtml(username);
     const safeRole = escapeAdminHtml(u.role || 'без ролі');
-    const safeGroup = escapeAdminHtml(getUserGroupName(u) || 'без групи');
+    const safeGroup = escapeAdminHtml(u.group_name || 'без групи');
     const active = Boolean(u.active);
 
     return `
@@ -1917,7 +1724,6 @@ async function loadUsersAdmin() {
       </article>
     `;
   }).join('');
-  applyDirectorAdminUi();
 }
 
 async function changeUserPassword(username) {
@@ -1925,8 +1731,15 @@ async function changeUserPassword(username) {
 
   if (!password) return;
 
-  const data = await postUserAdminAction('password', { username, password });
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/password', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
 
+  const data = await res.json();
+  
   if (!data.ok) {
     alert(data.error || 'Помилка зміни пароля');
     return;
@@ -1943,10 +1756,22 @@ async function renameUser(oldUsername) {
 
   if (!newUsername || newUsername === oldUsername) return;
 
-  const data = await postUserAdminAction('rename', {
-    oldUsername,
-    newUsername
-  });
+  const res = await fetch(
+    'https://api.tulip-pirads.com/api/admin/user/rename',
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        oldUsername,
+        newUsername
+      })
+    }
+  );
+
+  const data = await res.json();
 
   if (!data.ok) {
     alert(data.error || 'Помилка');
@@ -1961,9 +1786,21 @@ async function deleteUser(username) {
     return;
   }
 
-  const data = await postUserAdminAction('delete', {
-    username
-  });
+  const res = await fetch(
+    'https://api.tulip-pirads.com/api/admin/user/delete',
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username
+      })
+    }
+  );
+
+  const data = await res.json();
 
   if (!data.ok) {
     alert(data.error || 'Помилка');
@@ -1974,7 +1811,14 @@ async function deleteUser(username) {
 }
 
 async function toggleUserActive(username, active) {
-  const data = await postUserAdminAction('active', { username, active });
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/active', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, active })
+  });
+
+  const data = await res.json();
 
   if (!data.ok) {
     alert(data.error || 'Помилка');
@@ -1993,7 +1837,7 @@ checkLogin();
     <header class="users-admin-header">
       <div>
         <h3 id="usersAdminTitle">Користувачі</h3>
-        <p id="usersAdminSubtitle" class="users-admin-subtitle">Створення користувачів, групи та керування доступом в одному прокручуваному вікні.</p>
+        <p class="users-admin-subtitle">Створення користувачів, групи та керування доступом в одному прокручуваному вікні.</p>
       </div>
       <button class="btn users-admin-close" type="button" onclick="closeUsersAdmin()" aria-label="Закрити">×</button>
     </header>
@@ -2037,7 +1881,7 @@ checkLogin();
           <div id="usersListBox" class="users-admin-list"></div>
         </section>
 
-        <section id="createGroupSection" class="users-admin-card" aria-labelledby="createGroupTitle">
+        <section class="users-admin-card" aria-labelledby="createGroupTitle">
           <h4 id="createGroupTitle">Групи</h4>
           <label class="users-admin-field">Назва групи
             <input id="newGroupName" placeholder="Назва групи" autocomplete="off">
