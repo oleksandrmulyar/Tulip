@@ -1537,14 +1537,12 @@ function canDirectorManageUser(user) {
   const directorGroupName = getCurrentUserGroupName();
   const userGroupId = String(user?.group_id ?? user?.groupId ?? '');
   const userGroupName = String(user?.group_name ?? user?.groupName ?? '');
-  const isDoctor = String(user?.role || '').toLowerCase() === 'doctor';
 
-  if (!isDoctor) return false;
-
-  if (directorGroupId && userGroupId) return userGroupId === directorGroupId;
-  if (directorGroupName && userGroupName) return userGroupName === directorGroupName;
-
-  return Boolean(user?.__directorScoped);
+  return user?.role === 'doctor'
+    && (
+      (directorGroupId && userGroupId && userGroupId === directorGroupId)
+      || (!directorGroupId && directorGroupName && userGroupName === directorGroupName)
+    );
 }
 
 function getManageableUser(username) {
@@ -1804,7 +1802,7 @@ async function createUserFromSite() {
     role = 'doctor';
     group_id = getCurrentUserGroupId() || group_id;
 
-    if (!group_id && !getCurrentUserGroupName()) {
+    if (!group_id) {
       resultBox.textContent = 'Директор має бути прив’язаний до групи';
       return;
     }
@@ -1812,13 +1810,14 @@ async function createUserFromSite() {
 
   resultBox.textContent = 'Створення...';
 
-  const data = await postUserAdminAction('create', {
-    username,
-    password,
-    role,
-    group_id,
-    group_name: isCurrentUserDirector() ? getCurrentUserGroupName() : undefined
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/create', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, role, group_id })
   });
+
+  const data = await res.json();
 
   if (data.ok) {
     resultBox.textContent = 'Користувача створено: ' + data.username;
@@ -1842,16 +1841,7 @@ async function loadUsersAdmin() {
     return;
   }
 
-  ADMIN_USERS = (data.users || []).map(user => {
-    if (!isCurrentUserDirector()) return user;
-
-    return {
-      ...user,
-      group_id: user.group_id ?? user.groupId ?? getCurrentUserGroupId(),
-      group_name: user.group_name ?? user.groupName ?? getCurrentUserGroupName(),
-      __directorScoped: true
-    };
-  });
+  ADMIN_USERS = data.users || [];
   const users = isCurrentUserDirector()
     ? ADMIN_USERS.filter(canDirectorManageUser)
     : ADMIN_USERS;
@@ -1948,6 +1938,10 @@ async function deleteUser(username) {
     return;
   }
 
+  if (!confirm('Видалити користувача ' + username + '?')) {
+    return;
+  }
+
   const data = await postUserAdminAction('delete', {
     username
   });
@@ -1965,6 +1959,13 @@ async function toggleUserActive(username, active) {
     alert('Директор може вмикати або вимикати лише лікарів своєї групи');
     return;
   }
+
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/active', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, active })
+  });
 
   const data = await postUserAdminAction('active', { username, active });
 
