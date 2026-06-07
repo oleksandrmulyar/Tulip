@@ -1684,8 +1684,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('DOMContentLoaded', function(){
     // Toggle drawer
     const btn = document.getElementById('btnSideMenu');
+    const logoutBtn = document.getElementById('btnLogoutAccount');
     const overlay = document.getElementById('drawerOverlay');
     if(btn) btn.addEventListener('click', ()=> openDrawer(true));
+    if(logoutBtn) logoutBtn.addEventListener('click', ()=> openDrawer(false));
     if(overlay) overlay.addEventListener('click', ()=> openDrawer(false));
     document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') openDrawer(false); });
 
@@ -1705,41 +1707,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const miExport = document.getElementById('miExportPolys');
     const miImport = document.getElementById('miImportPolys');
 
-        if(miSwitchAccount) miSwitchAccount.addEventListener('click', async function(){
+    if(miSwitchAccount) miSwitchAccount.addEventListener('click', async function(){
       openDrawer(false);
+      if (typeof window.logoutFromTulip === 'function') {
+        await window.logoutFromTulip();
+        return;
+      }
+
       try { localStorage.removeItem('pirads_user_email_v1'); } catch(_) {}
-
-      async function canUseLogoutResponse(path, res){
-        if (!res) return false;
-        if (!(res.ok || (res.status >= 300 && res.status < 400))) return false;
-        if (path !== '/cdn-cgi/access/logout') return true;
-        try {
-          const body = (await res.text() || '').toLowerCase();
-          if (body.includes('no access cookie found')) return false;
-        } catch(_) {}
-        return true;
-      }
-
-      const logoutPaths = [
-        '/cdn-cgi/access/logout',
-        '/api/logout',
-        '/logout'
-      ];
-
-      for (const path of logoutPaths) {
-        try {
-          const res = await fetch(path, {
-            method: 'GET',
-            credentials: 'include',
-            redirect: 'manual'
-          });
-          if (await canUseLogoutResponse(path, res)) {
-            window.location.href = path;
-            return;
-          }
-        } catch(_) {}
-      }
-
       window.location.href = '/';
     });
     if(miChoose) miChoose.addEventListener('click', function(){

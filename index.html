@@ -1339,6 +1339,7 @@
 <!-- GPT_HAMBURGER -->
 
 <button id="btnSideMenu" class="btn" aria-label="Меню" title="Меню">☰</button>
+<button id="btnLogoutAccount" class="btn" type="button" aria-label="Вийти з акаунта" title="Вийти з акаунта">↪ Вийти</button>
 <button id="themeToggle" class="btn" aria-label="Перемкнути тему" title="Перемкнути тему">🌙 Темна</button>
 
 <!-- GPT_SIDE_DRAWER -->
@@ -1347,7 +1348,7 @@
 <aside id="sideDrawer" role="dialog" aria-modal="true" aria-label="Сайд-меню">
   <header>Швидкі дії</header>
   <div class="content">
-    <button id="miSwitchAccount" class="btn">🔐 Увійти під іншим email</button>
+    <button id="miSwitchAccount" class="btn" type="button">↪ Вийти з акаунта</button>
     <button id="miChooseFolder" class="btn">🗂️ Обрати папку для збереження</button>
   </div>
   <div class="muted">Згорнути — натисніть поза меню або Esc</div>
@@ -1505,6 +1506,61 @@ document.getElementById('loginForm').addEventListener('submit', function(event) 
   event.preventDefault();
   doLogin();
 });
+
+function showLoggedOutScreen(message) {
+  const loginScreen = document.getElementById('loginScreen');
+  const appRoot = document.getElementById('appRoot');
+  const adminUsersBtn = document.getElementById('adminUsersBtn');
+  const passwordInput = document.getElementById('loginPassword');
+  const errorBox = document.getElementById('loginError');
+
+  document.body.classList.remove('drawer-open', 'history-open');
+
+  if (loginScreen) loginScreen.style.display = 'flex';
+  if (appRoot) appRoot.style.display = 'none';
+  if (adminUsersBtn) adminUsersBtn.style.display = 'none';
+  if (passwordInput) passwordInput.value = '';
+  if (errorBox) errorBox.textContent = message || '';
+  setCurrentAdminUser({ ok: false });
+
+  setTimeout(function() {
+    const usernameInput = document.getElementById('loginUsername');
+    if (usernameInput) usernameInput.focus();
+  }, 0);
+}
+
+async function logoutFromTulip() {
+  const logoutBtn = document.getElementById('btnLogoutAccount');
+  const menuLogoutBtn = document.getElementById('miSwitchAccount');
+  const buttons = [logoutBtn, menuLogoutBtn].filter(Boolean);
+
+  buttons.forEach(button => {
+    button.disabled = true;
+  });
+
+  try {
+    try { localStorage.removeItem('pirads_user_email_v1'); } catch (_) {}
+    await fetch('https://api.tulip-pirads.com/api/logout', {
+      method: 'GET',
+      credentials: 'include'
+    });
+  } catch (_) {
+    // Even if the network request fails, return the user to the login screen locally.
+  } finally {
+    buttons.forEach(button => {
+      button.disabled = false;
+    });
+  }
+
+  showLoggedOutScreen('Ви вийшли з акаунта');
+}
+
+window.logoutFromTulip = logoutFromTulip;
+
+const logoutAccountBtn = document.getElementById('btnLogoutAccount');
+if (logoutAccountBtn) {
+  logoutAccountBtn.addEventListener('click', logoutFromTulip);
+}
 
 async function checkLogin() {
   const res = await fetch('https://api.tulip-pirads.com/api/me', {
