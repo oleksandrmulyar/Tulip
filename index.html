@@ -1859,14 +1859,19 @@ async function loadUsersAdmin() {
   bindUsersAdminListActions(box);
   box.innerHTML = '<div class="users-admin-empty">Завантаження...</div>';
 
-  const res = await fetch('https://api.tulip-pirads.com/api/admin/users', {
-    credentials: 'include'
-  });
+  let data = null;
 
-  const data = await res.json();
+  try {
+    const res = await fetch('https://api.tulip-pirads.com/api/admin/users', {
+      credentials: 'include'
+    });
+    data = await res.json();
+  } catch (err) {
+    console.error('loadUsersAdmin failed:', err);
+  }
 
-  if (!data.ok) {
-    box.innerHTML = `<div class="users-admin-empty">${escapeAdminHtml(data.error || 'Помилка завантаження')}</div>`;
+  if (!data?.ok) {
+    box.innerHTML = `<div class="users-admin-empty">${escapeAdminHtml(data?.error || 'Помилка завантаження')}</div>`;
     return;
   }
 
