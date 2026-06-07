@@ -1553,12 +1553,10 @@ function buildCurrentAdminUser(data) {
   const role = normalizeRole(firstDefined(data.role, data.user?.role));
   const groupId = getUserGroupId(data);
   const groupName = getUserGroupName(data);
-  const username = String(firstDefined(data.username, data.user?.username, data.login, data.user?.login) || '').trim();
 
   return {
     admin: Boolean(data.admin),
     role,
-    username,
     groupId,
     groupName,
     isDirector: !data.admin && role === 'director'
@@ -1577,78 +1575,6 @@ function userBelongsToDirectorGroup(user) {
   return Boolean(directorGroupName && userGroupName && userGroupName === directorGroupName);
 }
 
-function updateDirectorGroupFromKnownData(users = []) {
-  if (!CURRENT_ADMIN_USER?.isDirector) return;
-
-  const currentGroupId = normalizeId(CURRENT_ADMIN_USER.groupId);
-  const currentGroupName = CURRENT_ADMIN_USER.groupName || '';
-  const matchedGroup = ADMIN_GROUPS.find(g => {
-    if (currentGroupId && normalizeId(g.id) === currentGroupId) return true;
-    return currentGroupName && normalizeName(g.name) === normalizeName(currentGroupName);
-  });
-
-  if (matchedGroup) {
-    setDirectorGroup(matchedGroup.id, matchedGroup.name || currentGroupName);
-    return;
-  }
-
-  const currentUsername = normalizeName(CURRENT_ADMIN_USER.username);
-  const userWithGroup = users.find(user => {
-    const username = normalizeName(firstDefined(user.username, user.login, user.user?.username, user.user?.login));
-    return currentUsername && username === currentUsername && (getUserGroupId(user) || getUserGroupName(user));
-  }) || users.find(user => getUserGroupId(user) || getUserGroupName(user));
-  if (!userWithGroup) return;
-
-  const userGroupId = getUserGroupId(userWithGroup);
-  const userGroupName = getUserGroupName(userWithGroup);
-  setDirectorGroup(CURRENT_ADMIN_USER.groupId || userGroupId, CURRENT_ADMIN_USER.groupName || userGroupName);
-}
-
-function directorGroupValue() {
-  return normalizeId(CURRENT_ADMIN_USER?.groupId) || normalizeId(CURRENT_ADMIN_USER?.groupName);
-}
-
-function setDirectorGroup(groupId, groupName) {
-  if (!CURRENT_ADMIN_USER?.isDirector) return;
-  const normalizedGroupId = normalizeId(groupId);
-  const normalizedGroupName = String(groupName || '').trim();
-  if (normalizedGroupId) CURRENT_ADMIN_USER.groupId = normalizedGroupId;
-  if (normalizedGroupName) CURRENT_ADMIN_USER.groupName = normalizedGroupName;
-}
-
-function visibleUserGroups() {
-  return Array.from(document.querySelectorAll('#usersListBox .user-card__meta'))
-    .map(el => {
-      const match = String(el.textContent || '').match(/Група:\s*(.+)$/);
-      return match ? match[1].trim() : '';
-    })
-    .filter(group => group && group !== 'без групи');
-}
-
-async function ensureDirectorGroupLoaded() {
-  if (!CURRENT_ADMIN_USER?.isDirector || directorGroupValue()) return;
-
-  const visibleGroup = visibleUserGroups()[0];
-  if (visibleGroup) {
-    setDirectorGroup('', visibleGroup);
-    applyDirectorAdminUi();
-    return;
-  }
-
-  try {
-    const res = await fetch('https://api.tulip-pirads.com/api/admin/users', {
-      credentials: 'include'
-    });
-    const data = await res.json();
-    if (data.ok) {
-      updateDirectorGroupFromKnownData(data.users || []);
-      applyDirectorAdminUi();
-    }
-  } catch (err) {
-    console.error('ensureDirectorGroupLoaded failed:', err);
-  }
-}
-
 function applyDirectorAdminUi() {
   const isDirector = Boolean(CURRENT_ADMIN_USER?.isDirector);
   const roleSelect = document.getElementById('newRole');
@@ -1665,14 +1591,6 @@ function applyDirectorAdminUi() {
   }
 
   if (groupSelect) {
-    if (isDirector) {
-      const groupValue = directorGroupValue();
-      const groupLabel = CURRENT_ADMIN_USER?.groupName || 'Група директора';
-      if (groupValue && !Array.from(groupSelect.options).some(option => option.value === groupValue)) {
-        groupSelect.innerHTML = `<option value="${escapeAdminHtml(groupValue)}">${escapeAdminHtml(groupLabel)}</option>`;
-      }
-      if (groupValue) groupSelect.value = groupValue;
-    }
     groupSelect.disabled = isDirector;
     groupSelect.title = isDirector ? 'Директор створює користувачів тільки у своїй групі' : '';
   }
@@ -1724,7 +1642,6 @@ async function loadGroupsAdmin() {
 
   if (!data?.ok) {
     ADMIN_GROUPS = [];
-    await ensureDirectorGroupLoaded();
     applyDirectorAdminUi();
     return;
   }
@@ -1736,7 +1653,7 @@ async function loadGroupsAdmin() {
   if (!select) return;
 
   if (CURRENT_ADMIN_USER?.isDirector) {
-    const ownGroupId = directorGroupValue();
+    const ownGroupId = normalizeId(CURRENT_ADMIN_USER.groupId);
     const ownGroupName = CURRENT_ADMIN_USER.groupName || 'моя група';
     const ownGroup = ADMIN_GROUPS.find(g => {
       if (ownGroupId) return normalizeId(g.id) === ownGroupId;
@@ -1817,7 +1734,7 @@ function updateGroupVisibility() {
     group.style.display = 'block';
     label.style.display = 'block';
     group.disabled = true;
-    group.value = directorGroupValue();
+    group.value = normalizeId(CURRENT_ADMIN_USER.groupId);
     return;
   }
 
@@ -1878,7 +1795,8 @@ function bindUsersAdminListActions(box) {
 }
 
 function userAdminEndpoint(action) {
-  return `https://api.tulip-pirads.com/api/admin/user/${action}`;
+  const scope = CURRENT_ADMIN_USER?.isDirector ? 'director' : 'admin';
+  return `https://api.tulip-pirads.com/api/${scope}/user/${action}`;
 }
 
 async function postUserAdminAction(action, payload) {
@@ -1900,9 +1818,8 @@ async function createUserFromSite() {
   const resultBox = document.getElementById('usersAdminResult');
 
   if (CURRENT_ADMIN_USER?.isDirector) {
-    await ensureDirectorGroupLoaded();
-    group_id = directorGroupValue();
-    if (!group_id && !CURRENT_ADMIN_USER.groupName) {
+    group_id = normalizeId(CURRENT_ADMIN_USER.groupId);
+    if (!group_id) {
       resultBox.textContent = 'Не вдалося визначити групу директора';
       return;
     }
@@ -1914,13 +1831,9 @@ async function createUserFromSite() {
 
   resultBox.textContent = 'Створення...';
 
-  const data = await postUserAdminAction('create', {
-    username,
-    password,
-    role,
-    group_id,
-    group_name: CURRENT_ADMIN_USER?.isDirector ? CURRENT_ADMIN_USER.groupName : undefined
-  });
+  resultBox.textContent = 'Створення...';
+
+  const data = await postUserAdminAction('create', { username, password, role, group_id });
 
   if (data.ok) {
     resultBox.textContent = 'Користувача створено: ' + data.username;
@@ -1947,11 +1860,7 @@ async function loadUsersAdmin() {
     return;
   }
 
-  const allUsers = data.users || [];
-  updateDirectorGroupFromKnownData(allUsers);
-  applyDirectorAdminUi();
-
-  const users = allUsers.filter(userBelongsToDirectorGroup);
+  const users = (data.users || []).filter(userBelongsToDirectorGroup);
   DIRECTOR_VISIBLE_USERNAMES = new Set(users.map(u => String(u.username || '')));
 
   if (!users.length) {
