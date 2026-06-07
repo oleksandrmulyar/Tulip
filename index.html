@@ -1642,6 +1642,7 @@ async function loadGroupsAdmin() {
   }
 
   ADMIN_GROUPS = data.groups || [];
+  updateDirectorGroupFromKnownData();
 
   const select = document.getElementById('newGroup');
   if (!select) return;
