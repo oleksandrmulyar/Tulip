@@ -1173,22 +1173,77 @@ document.addEventListener('DOMContentLoaded', () => {
     rm.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
   }
 
+  function clonePlain(obj){
+    try { return JSON.parse(JSON.stringify(obj || {})); } catch(_) { return obj || {}; }
+  }
+
   function applyEmbedded(force){
-    const eState = parseEmbedded('embeddedState') || {};
-    const ePolys = parseEmbedded('embeddedPolys') || {};
+    const eState = clonePlain(parseEmbedded('embeddedState') || {});
+    const ePolys = clonePlain(parseEmbedded('embeddedPolys') || {});
     if(force){
       clearAll('pirads21_');
       writeAll(LS_STATE_KEYS, eState);
       writeAll(LS_POLYS_KEYS, ePolys);
     }
-    try{ state = eState; }catch(_){ window.state = eState; }
-    try{ polys = ePolys; }catch(_){ window.polys = ePolys; }
+    try{ state = eState; window.state = state; }catch(_){ window.state = eState; }
+    try{ polys = ePolys; window.polys = polys; }catch(_){ window.polys = ePolys; }
     try{ save && save(); }catch(e){};
     try{ savePolys && savePolys(); }catch(e){};
     try{ buildTable && buildTable(); }catch(e){};
     try{ updateVol && updateVol(); }catch(e){};
     try{ draw && draw(); }catch(e){};
   }
+
+  function setValueQuietly(id, value){
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === 'SELECT') {
+      el.value = value || '';
+      if (el.value !== (value || '')) el.selectedIndex = 0;
+      return;
+    }
+    el.value = value || '';
+  }
+
+  function clearReportQuietly(){
+    const reportText = document.getElementById('reportText');
+    if (reportText) reportText.innerHTML = '';
+    ['reportImg', 'reportImg2'].forEach(id => {
+      const img = document.getElementById(id);
+      if (img) img.removeAttribute('src');
+    });
+    const report = document.getElementById('report');
+    if (report) report.style.display = '';
+  }
+
+  window.resetTulipWorkspace = function(options){
+    const opts = options || {};
+    const previousSuppress = window.__TULIP_SUPPRESS_AUTOSAVE === true;
+    if (opts.suppressAutosave) window.__TULIP_SUPPRESS_AUTOSAVE = true;
+    try {
+      applyEmbedded(true);
+      ['pib', 'p_tr', 'p_ap', 'p_cc'].forEach(id => setValueQuietly(id, ''));
+      for (let n = 1; n <= 5; n++) {
+        ['tr', 'ap', 'cc', 't2', 'dwi', 'dce', 'sv', 'ece', 'inv'].forEach(k => setValueQuietly(k + '-' + n, ''));
+      }
+      const volOut = document.getElementById('volOut');
+      if (volOut) volOut.textContent = '—';
+      document.querySelectorAll('#lesionChips .chip').forEach((chip, idx) => {
+        chip.classList.toggle('active', idx === 0);
+      });
+      document.body.classList.remove('drawer-open', 'history-open');
+      const historyList = document.getElementById('historyList');
+      if (historyList) historyList.innerHTML = '';
+      const historySearch = document.getElementById('historySearch');
+      if (historySearch) historySearch.value = '';
+      clearReportQuietly();
+      try{ buildTable && buildTable(); }catch(e){};
+      try{ updateVol && updateVol(); }catch(e){};
+      try{ draw && draw(); }catch(e){};
+    } finally {
+      if (opts.suppressAutosave) window.__TULIP_SUPPRESS_AUTOSAVE = previousSuppress;
+    }
+  };
 
   document.addEventListener('DOMContentLoaded', ()=>{ applyEmbedded(true); });
   const btn = document.getElementById('applyEmbeddedOverride');
@@ -1232,10 +1287,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const el=document.getElementById(id); if(el) set0(el);
       });
       // Internal state
-      if (window.state){
-        if (!state.ellipseShift) state.ellipseShift={Sagittal:{x:0,y:0},Coronal:{x:0,y:0}};
-        state.ellipseShift.Sagittal = {x:0,y:0};
-        state.ellipseShift.Coronal  = {x:0,y:0};
+      const appState = (typeof state === 'object' && state) ? state : window.state;
+      if (appState){
+        if (!appState.ellipseShift) appState.ellipseShift={Sagittal:{x:0,y:0},Coronal:{x:0,y:0}};
+        appState.ellipseShift.Sagittal = {x:0,y:0};
+        appState.ellipseShift.Coronal  = {x:0,y:0};
       }
       zeroPercents(panel);
       // Redraw
@@ -1383,16 +1439,26 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       ['pib','p_tr','p_ap','p_cc'].forEach(id=>{ const el=document.getElementById(id); if(el) set0(el); });
-      [['volOut','—'],['report',''],['result',''],['summary',''],['generatedReport','']].forEach(([id,txt])=>{
+      [['volOut','—'],['result',''],['summary',''],['generatedReport','']].forEach(([id,txt])=>{
         const el=document.getElementById(id); if(el) el.textContent = txt;
+      });
+      const reportText = document.getElementById('reportText');
+      if (reportText) reportText.innerHTML = '';
+      ['reportImg','reportImg2'].forEach(id=>{
+        const img = document.getElementById(id);
+        if (img) img.removeAttribute('src');
       });
 
       document.querySelectorAll('.sectors').forEach(n=> n.innerHTML = '—');
 
       try{ 
-        if (window.state && window.state.lesions) { 
-          Object.keys(window.state.lesions).forEach(k=>{ window.state.lesions[k] = {sectors:[], tr:'', ap:'', cc:'', t2:'', dwi:'', dce:'', sv:'no', ece:'no', inv:''}; });
-          window.state.active = 1;
+        const appState = (typeof state === 'object' && state) ? state : window.state;
+        if (appState && appState.lesions) {
+          Object.keys(appState.lesions).forEach(k=>{ appState.lesions[k] = {sectors:[], tr:'', ap:'', cc:'', t2:'', dwi:'', dce:'', sv:'no', ece:'no', inv:''}; });
+          appState.active = 1;
+          appState.pib = '';
+          if (appState.prostate) appState.prostate = {tr:'', ap:'', cc:''};
+          window.state = appState;
         }
       }catch(_){ }
 
@@ -1408,7 +1474,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = 'c'+(i+1);
         const el = document.getElementById(id);
         if(el){ el.value = clr; bubble(el); }
-        if(window.state && window.state.colors) window.state.colors[String(i+1)] = clr;
+        const appState = (typeof state === 'object' && state) ? state : window.state;
+        if(appState && appState.colors) appState.colors[String(i+1)] = clr;
       });
 
       if (typeof save==='function') try{ save(); }catch(_){ }
@@ -2410,6 +2477,7 @@ if (saveBtn) saveBtn.addEventListener('click', async function(){ await saveCurre
 const pib = document.getElementById('pib');
 if (pib){
   pib.addEventListener('change', async function(){
+    if (window.__TULIP_SUPPRESS_AUTOSAVE) return;
     if ((await getAccessIdentity())?.email) await saveCurrentToHistory();
   });
 }

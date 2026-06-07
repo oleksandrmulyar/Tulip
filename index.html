@@ -1507,6 +1507,23 @@ document.getElementById('loginForm').addEventListener('submit', function(event) 
   doLogin();
 });
 
+function clearTulipWorkspaceAfterLogout() {
+  window.__TULIP_SUPPRESS_AUTOSAVE = true;
+  try {
+    if (typeof window.resetTulipWorkspace === 'function') {
+      window.resetTulipWorkspace({ suppressAutosave: true });
+    } else {
+      Object.keys(localStorage).forEach(key => {
+        if (/^pirads21_/i.test(key)) localStorage.removeItem(key);
+      });
+    }
+  } catch (err) {
+    console.error('Failed to clear Tulip workspace:', err);
+  } finally {
+    window.__TULIP_SUPPRESS_AUTOSAVE = false;
+  }
+}
+
 function showLoggedOutScreen(message) {
   const loginScreen = document.getElementById('loginScreen');
   const appRoot = document.getElementById('appRoot');
@@ -1514,6 +1531,7 @@ function showLoggedOutScreen(message) {
   const passwordInput = document.getElementById('loginPassword');
   const errorBox = document.getElementById('loginError');
 
+  clearTulipWorkspaceAfterLogout();
   document.body.classList.remove('drawer-open', 'history-open');
 
   if (loginScreen) loginScreen.style.display = 'flex';
@@ -1579,10 +1597,7 @@ async function checkLogin() {
     document.getElementById('adminUsersBtn').style.display = canManageUsers ? 'inline-block' : 'none';
     setTimeout(showGroupFolderHint, 500);
   } else {
-    const canManageUsers = data.admin || data.role === 'director';
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('appRoot').style.display = 'none';
-    document.getElementById('adminUsersBtn').style.display = 'none';
+    showLoggedOutScreen('');
   }
 }
 
