@@ -1517,11 +1517,8 @@ async function checkLogin() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
 
-    if (data.admin) {
-      document.getElementById('adminUsersBtn').style.display = 'inline-block';
-    } else {
-      document.getElementById('adminUsersBtn').style.display = 'none';
-    }
+    const canManageUsers = data.admin || data.role === 'director';
+    document.getElementById('adminUsersBtn').style.display = canManageUsers ? 'inline-block' : 'none';
   } else {
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appRoot').style.display = 'none';
