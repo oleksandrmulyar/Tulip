@@ -1717,6 +1717,16 @@ async function openUsersAdmin() {
   const modal = document.getElementById('usersAdminModal');
   if (modal) modal.style.display = 'block';
   document.body.style.overflow = 'hidden';
+  applyDirectorAdminUi();
+
+  if (CURRENT_ADMIN_USER?.isDirector) {
+    await loadUsersAdmin();
+    await ensureDirectorGroupLoaded();
+    updateGroupVisibility();
+    applyDirectorAdminUi();
+    return;
+  }
+
   await loadGroupsAdmin();
   await loadUsersAdmin();
   updateGroupVisibility();
@@ -1870,6 +1880,11 @@ async function loadUsersAdmin() {
     return;
   }
 
+  if (CURRENT_ADMIN_USER?.isDirector && !directorGroupValue()) {
+    const firstGroupName = getUserGroupName(users.find(u => getUserGroupName(u)) || {});
+    if (firstGroupName) setDirectorGroup('', firstGroupName);
+  }
+
   box.innerHTML = users.map(u => {
     const username = String(u.username || '');
     const safeUsername = escapeAdminHtml(username);
@@ -1897,6 +1912,7 @@ async function loadUsersAdmin() {
       </article>
     `;
   }).join('');
+  applyDirectorAdminUi();
 }
 
 async function changeUserPassword(username) {
