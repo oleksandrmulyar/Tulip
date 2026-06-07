@@ -1514,11 +1514,11 @@ let ADMIN_GROUPS = [];
 let ADMIN_USERS = [];
 
 function getCurrentUserRole() {
-  return String(CURRENT_ADMIN_USER?.role ?? CURRENT_ADMIN_USER?.user?.role ?? '').toLowerCase();
+  return CURRENT_ADMIN_USER?.role || '';
 }
 
 function isCurrentUserAdmin() {
-  return Boolean(CURRENT_ADMIN_USER?.admin || CURRENT_ADMIN_USER?.user?.admin || getCurrentUserRole() === 'admin');
+  return Boolean(CURRENT_ADMIN_USER?.admin || getCurrentUserRole() === 'admin');
 }
 
 function isCurrentUserDirector() {
@@ -1526,93 +1526,11 @@ function isCurrentUserDirector() {
 }
 
 function getCurrentUserGroupId() {
-  return String(
-    CURRENT_ADMIN_USER?.group_id
-      ?? CURRENT_ADMIN_USER?.groupId
-      ?? CURRENT_ADMIN_USER?.group?.id
-      ?? CURRENT_ADMIN_USER?.user?.group_id
-      ?? CURRENT_ADMIN_USER?.user?.groupId
-      ?? CURRENT_ADMIN_USER?.user?.group?.id
-      ?? ''
-  );
+  return String(CURRENT_ADMIN_USER?.group_id ?? CURRENT_ADMIN_USER?.groupId ?? '');
 }
 
 function getCurrentUserGroupName() {
-  return String(
-    CURRENT_ADMIN_USER?.group_name
-      ?? CURRENT_ADMIN_USER?.groupName
-      ?? CURRENT_ADMIN_USER?.group?.name
-      ?? CURRENT_ADMIN_USER?.user?.group_name
-      ?? CURRENT_ADMIN_USER?.user?.groupName
-      ?? CURRENT_ADMIN_USER?.user?.group?.name
-      ?? ''
-  );
-}
-
-function getUserGroupId(user) {
-  return String(
-    user?.group_id
-      ?? user?.groupId
-      ?? user?.group?.id
-      ?? user?.user?.group_id
-      ?? user?.user?.groupId
-      ?? user?.user?.group?.id
-      ?? ''
-  );
-}
-
-function getUserGroupName(user) {
-  return String(
-    user?.group_name
-      ?? user?.groupName
-      ?? user?.group?.name
-      ?? user?.user?.group_name
-      ?? user?.user?.groupName
-      ?? user?.user?.group?.name
-      ?? ''
-  );
-}
-
-function setCurrentUserGroup(groupId, groupName) {
-  if (!CURRENT_ADMIN_USER) return;
-
-  const id = String(groupId ?? '').trim();
-  const name = String(groupName ?? '').trim();
-
-  if (id) CURRENT_ADMIN_USER.group_id = id;
-  if (name) CURRENT_ADMIN_USER.group_name = name;
-
-  if (CURRENT_ADMIN_USER.user) {
-    if (id) CURRENT_ADMIN_USER.user.group_id = id;
-    if (name) CURRENT_ADMIN_USER.user.group_name = name;
-  }
-}
-
-function updateDirectorGroupFromData(data) {
-  if (!isCurrentUserDirector()) return;
-
-  setCurrentUserGroup(getUserGroupId(data), getUserGroupName(data));
-
-  const users = data?.users || [];
-  const userWithGroup = users.find(user => getUserGroupName(user) || getUserGroupId(user));
-  if (userWithGroup) setCurrentUserGroup(getUserGroupId(userWithGroup), getUserGroupName(userWithGroup));
-}
-
-function renderDirectorGroupOption() {
-  const select = document.getElementById('newGroup');
-  if (!select) return;
-
-  const directorGroupId = getCurrentUserGroupId();
-  const directorGroupName = getCurrentUserGroupName();
-  const label = directorGroupName || directorGroupId || 'Групу не визначено';
-
-  ADMIN_GROUPS = directorGroupId || directorGroupName
-    ? [{ id: directorGroupId, name: label }]
-    : [];
-
-  select.innerHTML = `<option value="${escapeAdminHtml(directorGroupId)}">${escapeAdminHtml(label)}</option>`;
-  select.value = directorGroupId;
-  select.disabled = true;
+  return String(CURRENT_ADMIN_USER?.group_name ?? CURRENT_ADMIN_USER?.groupName ?? '');
 }
 
 function canDirectorManageUser(user) {
@@ -1620,16 +1538,14 @@ function canDirectorManageUser(user) {
 
   const directorGroupId = getCurrentUserGroupId();
   const directorGroupName = getCurrentUserGroupName();
-  const userGroupId = getUserGroupId(user);
-  const userGroupName = getUserGroupName(user);
-  const isDoctor = String(user?.role || '').toLowerCase() === 'doctor';
+  const userGroupId = String(user?.group_id ?? user?.groupId ?? '');
+  const userGroupName = String(user?.group_name ?? user?.groupName ?? '');
 
-  if (!isDoctor) return false;
-
-  if (directorGroupId && userGroupId) return userGroupId === directorGroupId;
-  if (directorGroupName && userGroupName) return userGroupName === directorGroupName;
-
-  return Boolean(user?.__directorScoped);
+  return user?.role === 'doctor'
+    && (
+      (directorGroupId && userGroupId && userGroupId === directorGroupId)
+      || (!directorGroupId && directorGroupName && userGroupName === directorGroupName)
+    );
 }
 
 function getManageableUser(username) {
@@ -1659,22 +1575,54 @@ async function checkLogin() {
 }
 
 async function loadGroupsAdmin() {
-  const select = document.getElementById('newGroup');
-  if (!select) return;
-
-  if (isCurrentUserDirector()) {
-    renderDirectorGroupOption();
-    return;
-  }
-
   const data = await fetchUsersAdminJson('groups');
 
   if (!data.ok) {
     ADMIN_GROUPS = [];
+
+    if (isCurrentUserDirector()) {
+      const select = document.getElementById('newGroup');
+      const directorGroupId = getCurrentUserGroupId();
+      const directorGroupName = getCurrentUserGroupName() || 'Ваша група';
+
+      if (select) {
+        select.innerHTML = `<option value="${escapeAdminHtml(directorGroupId)}">${escapeAdminHtml(directorGroupName)}</option>`;
+        select.value = directorGroupId;
+        select.disabled = true;
+      }
+    }
+
     return;
   }
 
   ADMIN_GROUPS = data.groups || [];
+
+  if (isCurrentUserDirector()) {
+    const directorGroupId = getCurrentUserGroupId();
+    const directorGroupName = getCurrentUserGroupName();
+
+    ADMIN_GROUPS = ADMIN_GROUPS.filter(group => {
+      const groupId = String(group.id ?? '');
+      const groupName = String(group.name ?? '');
+
+      return (directorGroupId && groupId === directorGroupId)
+        || (!directorGroupId && directorGroupName && groupName === directorGroupName);
+    });
+  }
+
+  const select = document.getElementById('newGroup');
+  if (!select) return;
+
+  if (isCurrentUserDirector()) {
+    const directorGroupId = getCurrentUserGroupId();
+    const directorGroupName = getCurrentUserGroupName() || 'Ваша група';
+    const selectedGroup = ADMIN_GROUPS[0] || { id: directorGroupId, name: directorGroupName };
+
+    select.innerHTML = `<option value="${escapeAdminHtml(selectedGroup.id)}">${escapeAdminHtml(selectedGroup.name)}</option>`;
+    select.value = String(selectedGroup.id ?? directorGroupId);
+    select.disabled = true;
+    return;
+  }
 
   select.disabled = false;
   select.innerHTML =
@@ -1723,15 +1671,8 @@ async function openUsersAdmin() {
   document.body.style.overflow = 'hidden';
 
   configureUsersAdminForRole();
-
-  if (isCurrentUserDirector()) {
-    await loadUsersAdmin();
-    await loadGroupsAdmin();
-  } else {
-    await loadGroupsAdmin();
-    await loadUsersAdmin();
-  }
-
+  await loadGroupsAdmin();
+  await loadUsersAdmin();
   updateGroupVisibility();
 }
 
@@ -1829,27 +1770,9 @@ function bindUsersAdminListActions(box) {
   });
 }
 
-(function preventMissingDirectorApiRoutes() {
-  const originalFetch = window.fetch.bind(window);
-
-  window.fetch = function(input, init) {
-    const url = typeof input === 'string' ? input : input?.url;
-
-    if (url && url.includes('/api/director/')) {
-      const adminUrl = url.replace('/api/director/', '/api/admin/');
-      input = typeof input === 'string' ? adminUrl : new Request(adminUrl, input);
-    }
-
-    return originalFetch(input, init);
-  };
-})();
-
 function usersAdminApiUrl(path) {
-  const adminPath = String(path || '')
-    .replace(/^\/?api\//, '')
-    .replace(/^(admin|director)\//, '');
-
-  return `https://api.tulip-pirads.com/api/admin/${adminPath}`;
+  const scope = isCurrentUserDirector() ? 'director' : 'admin';
+  return `https://api.tulip-pirads.com/api/${scope}/${path}`;
 }
 
 async function fetchUsersAdminJson(path, options = {}) {
@@ -1882,7 +1805,7 @@ async function createUserFromSite() {
     role = 'doctor';
     group_id = getCurrentUserGroupId() || group_id;
 
-    if (!group_id && !getCurrentUserGroupName()) {
+    if (!group_id) {
       resultBox.textContent = 'Директор має бути прив’язаний до групи';
       return;
     }
@@ -1890,17 +1813,14 @@ async function createUserFromSite() {
 
   resultBox.textContent = 'Створення...';
 
-  const payload = { username, password, role };
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/create', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, role, group_id })
+  });
 
-  if (group_id || !isCurrentUserDirector()) {
-    payload.group_id = group_id;
-  }
-
-  if (isCurrentUserDirector() && getCurrentUserGroupName()) {
-    payload.group_name = getCurrentUserGroupName();
-  }
-
-  const data = await postUserAdminAction('create', payload);
+  const data = await res.json();
 
   if (data.ok) {
     resultBox.textContent = 'Користувача створено: ' + data.username;
@@ -1924,19 +1844,7 @@ async function loadUsersAdmin() {
     return;
   }
 
-  updateDirectorGroupFromData(data);
-  if (isCurrentUserDirector()) renderDirectorGroupOption();
-
-  ADMIN_USERS = (data.users || []).map(user => {
-    if (!isCurrentUserDirector()) return user;
-
-    return {
-      ...user,
-      group_id: user.group_id ?? user.groupId ?? getCurrentUserGroupId(),
-      group_name: user.group_name ?? user.groupName ?? getCurrentUserGroupName(),
-      __directorScoped: true
-    };
-  });
+  ADMIN_USERS = data.users || [];
   const users = isCurrentUserDirector()
     ? ADMIN_USERS.filter(canDirectorManageUser)
     : ADMIN_USERS;
@@ -2033,6 +1941,10 @@ async function deleteUser(username) {
     return;
   }
 
+  if (!confirm('Видалити користувача ' + username + '?')) {
+    return;
+  }
+
   const data = await postUserAdminAction('delete', {
     username
   });
@@ -2050,6 +1962,13 @@ async function toggleUserActive(username, active) {
     alert('Директор може вмикати або вимикати лише лікарів своєї групи');
     return;
   }
+
+  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/active', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, active })
+  });
 
   const data = await postUserAdminAction('active', { username, active });
 
