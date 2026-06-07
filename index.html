@@ -1813,6 +1813,11 @@ async function createUserFromSite() {
 
   resultBox.textContent = 'Створення...';
 
+  const payload = { username, password, role };
+
+  if (group_id || !isDirectorUser()) payload.group_id = group_id;
+  if (isDirectorUser() && currentGroupName()) payload.group_name = currentGroupName();
+
   const res = await fetch('https://api.tulip-pirads.com/api/admin/user/create', {
     method: 'POST',
     credentials: 'include',
