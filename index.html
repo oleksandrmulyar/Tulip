@@ -1577,6 +1577,7 @@ async function checkLogin() {
 
         const canManageUsers = data.admin || data.role === 'director';
     document.getElementById('adminUsersBtn').style.display = canManageUsers ? 'inline-block' : 'none';
+    setTimeout(showGroupFolderHint, 500);
   } else {
     const canManageUsers = data.admin || data.role === 'director';
     document.getElementById('loginScreen').style.display = 'flex';
@@ -1591,7 +1592,10 @@ let CURRENT_ADMIN_USER = null;
 function setCurrentAdminUser(data) {
   CURRENT_ADMIN_USER = data && data.ok ? {
     admin: Boolean(data.admin),
-    role: data.role || ''
+    director: Boolean(data.director),
+    role: data.role || '',
+    group_id: data.group_id || '',
+    group_save_path: data.group_save_path || ''
   } : null;
 }
 
@@ -1933,6 +1937,29 @@ async function toggleUserActive(username, active) {
   loadUsersAdmin();
 }
 
+  function showGroupFolderHint() {
+  if (!CURRENT_ADMIN_USER || !CURRENT_ADMIN_USER.group_save_path) return;
+
+  const key = 'tulip_group_folder_hint_' + CURRENT_ADMIN_USER.group_id;
+
+  if (localStorage.getItem(key) === '1') return;
+
+  const text =
+    'Для вашої групи рекомендована папка збереження:\n\n' +
+    CURRENT_ADMIN_USER.group_save_path +
+    '\n\nНатисніть OK, потім виберіть саме цю папку.';
+
+  if (confirm(text)) {
+    localStorage.setItem(key, '1');
+
+    const btn =
+      document.getElementById('btnChooseFolder') ||
+      document.getElementById('miChooseFolder');
+
+    if (btn) btn.click();
+  }
+}
+  
 checkLogin();
 </script>
 </div>
