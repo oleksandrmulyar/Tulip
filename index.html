@@ -1637,6 +1637,7 @@ async function loadGroupsAdmin() {
 
   if (!data.ok) {
     ADMIN_GROUPS = [];
+    applyDirectorAdminUi();
     return;
   }
 
@@ -1787,6 +1788,22 @@ function bindUsersAdminListActions(box) {
   });
 }
 
+function userAdminEndpoint(action) {
+  const scope = CURRENT_ADMIN_USER?.isDirector ? 'director' : 'admin';
+  return `https://api.tulip-pirads.com/api/${scope}/user/${action}`;
+}
+
+async function postUserAdminAction(action, payload) {
+  const res = await fetch(userAdminEndpoint(action), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  return res.json();
+}
+
 async function createUserFromSite() {
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value;
@@ -1808,14 +1825,9 @@ async function createUserFromSite() {
 
   resultBox.textContent = 'Створення...';
 
-  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/create', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, role, group_id })
-  });
+  resultBox.textContent = 'Створення...';
 
-  const data = await res.json();
+  const data = await postUserAdminAction('create', { username, password, role, group_id });
 
   if (data.ok) {
     resultBox.textContent = 'Користувача створено: ' + data.username;
@@ -1886,14 +1898,7 @@ async function changeUserPassword(username) {
 
   if (!password) return;
 
-  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/password', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-
-  const data = await res.json();
+  const data = await postUserAdminAction('password', { username, password });
 
   if (!data.ok) {
     alert(data.error || 'Помилка зміни пароля');
@@ -1911,22 +1916,10 @@ async function renameUser(oldUsername) {
 
   if (!newUsername || newUsername === oldUsername) return;
 
-  const res = await fetch(
-    'https://api.tulip-pirads.com/api/admin/user/rename',
-    {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        oldUsername,
-        newUsername
-      })
-    }
-  );
-
-  const data = await res.json();
+  const data = await postUserAdminAction('rename', {
+    oldUsername,
+    newUsername
+  });
 
   if (!data.ok) {
     alert(data.error || 'Помилка');
@@ -1941,21 +1934,9 @@ async function deleteUser(username) {
     return;
   }
 
-  const res = await fetch(
-    'https://api.tulip-pirads.com/api/admin/user/delete',
-    {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        username
-      })
-    }
-  );
-
-  const data = await res.json();
+  const data = await postUserAdminAction('delete', {
+    username
+  });
 
   if (!data.ok) {
     alert(data.error || 'Помилка');
@@ -1966,14 +1947,7 @@ async function deleteUser(username) {
 }
 
 async function toggleUserActive(username, active) {
-  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/active', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, active })
-  });
-
-  const data = await res.json();
+  const data = await postUserAdminAction('active', { username, active });
 
   if (!data.ok) {
     alert(data.error || 'Помилка');
