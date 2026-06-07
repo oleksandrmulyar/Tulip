@@ -1572,14 +1572,23 @@ async function checkLogin() {
 }
 
 async function loadGroupsAdmin() {
-  const res = await fetch('https://api.tulip-pirads.com/api/admin/groups', {
-    credentials: 'include'
-  });
-
-  const data = await res.json();
+  const data = await fetchUsersAdminJson('groups');
 
   if (!data.ok) {
     ADMIN_GROUPS = [];
+
+    if (isCurrentUserDirector()) {
+      const select = document.getElementById('newGroup');
+      const directorGroupId = getCurrentUserGroupId();
+      const directorGroupName = getCurrentUserGroupName() || 'Ваша група';
+
+      if (select) {
+        select.innerHTML = `<option value="${escapeAdminHtml(directorGroupId)}">${escapeAdminHtml(directorGroupName)}</option>`;
+        select.value = directorGroupId;
+        select.disabled = true;
+      }
+    }
+
     return;
   }
 
@@ -1758,6 +1767,30 @@ function bindUsersAdminListActions(box) {
   });
 }
 
+function usersAdminApiUrl(path) {
+  const scope = isCurrentUserDirector() ? 'director' : 'admin';
+  return `https://api.tulip-pirads.com/api/${scope}/${path}`;
+}
+
+async function fetchUsersAdminJson(path, options = {}) {
+  const res = await fetch(usersAdminApiUrl(path), {
+    credentials: 'include',
+    ...options
+  });
+
+  const data = await res.json().catch(() => ({ ok: false, error: 'Помилка відповіді сервера' }));
+  if (!res.ok && !data.error) data.error = `Помилка ${res.status}`;
+  return data;
+}
+
+async function postUserAdminAction(action, payload) {
+  return fetchUsersAdminJson(`user/${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+}
+
 async function createUserFromSite() {
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value;
@@ -1800,11 +1833,7 @@ async function loadUsersAdmin() {
   bindUsersAdminListActions(box);
   box.innerHTML = '<div class="users-admin-empty">Завантаження...</div>';
 
-  const res = await fetch('https://api.tulip-pirads.com/api/admin/users', {
-    credentials: 'include'
-  });
-  
-  const data = await res.json();
+  const data = await fetchUsersAdminJson('users');
 
   if (!data.ok) {
     ADMIN_USERS = [];
@@ -1863,14 +1892,7 @@ async function changeUserPassword(username) {
 
   if (!password) return;
 
-  const res = await fetch('https://api.tulip-pirads.com/api/admin/user/password', {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-
-  const data = await res.json();
+  const data = await postUserAdminAction('password', { username, password });
   
   if (!data.ok) {
     alert(data.error || 'Помилка зміни пароля');
@@ -1893,22 +1915,10 @@ async function renameUser(oldUsername) {
 
   if (!newUsername || newUsername === oldUsername) return;
 
-  const res = await fetch(
-    'https://api.tulip-pirads.com/api/admin/user/rename',
-    {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        oldUsername,
-        newUsername
-      })
-    }
-  );
-
-  const data = await res.json();
+  const data = await postUserAdminAction('rename', {
+    oldUsername,
+    newUsername
+  });
 
   if (!data.ok) {
     alert(data.error || 'Помилка');
@@ -1928,21 +1938,13 @@ async function deleteUser(username) {
     return;
   }
 
-  const res = await fetch(
-    'https://api.tulip-pirads.com/api/admin/user/delete',
-    {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        username
-      })
-    }
-  );
+  if (!confirm('Видалити користувача ' + username + '?')) {
+    return;
+  }
 
-  const data = await res.json();
+  const data = await postUserAdminAction('delete', {
+    username
+  });
 
   if (!data.ok) {
     alert(data.error || 'Помилка');
@@ -1965,7 +1967,7 @@ async function toggleUserActive(username, active) {
     body: JSON.stringify({ username, active })
   });
 
-  const data = await res.json();
+  const data = await postUserAdminAction('active', { username, active });
 
   if (!data.ok) {
     alert(data.error || 'Помилка');
