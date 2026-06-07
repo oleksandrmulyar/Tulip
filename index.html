@@ -1591,14 +1591,6 @@ function applyDirectorAdminUi() {
   }
 
   if (groupSelect) {
-    if (isDirector) {
-      const groupValue = normalizeId(CURRENT_ADMIN_USER?.groupId);
-      const groupLabel = CURRENT_ADMIN_USER?.groupName || 'Група директора';
-      if (groupValue && !Array.from(groupSelect.options).some(option => option.value === groupValue)) {
-        groupSelect.innerHTML = `<option value="${escapeAdminHtml(groupValue)}">${escapeAdminHtml(groupLabel)}</option>`;
-      }
-      if (groupValue) groupSelect.value = groupValue;
-    }
     groupSelect.disabled = isDirector;
     groupSelect.title = isDirector ? 'Директор створює користувачів тільки у своїй групі' : '';
   }
@@ -1830,6 +1822,8 @@ async function createUserFromSite() {
       return;
     }
   }
+
+  resultBox.textContent = 'Створення...';
 
   resultBox.textContent = 'Створення...';
 
