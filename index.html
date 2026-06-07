@@ -1530,29 +1530,23 @@ function showLoggedOutScreen(message) {
 }
 
 async function logoutFromTulip() {
-  const logoutBtn = document.getElementById('btnLogoutAccount');
-  const menuLogoutBtn = document.getElementById('miSwitchAccount');
-  const buttons = [logoutBtn, menuLogoutBtn].filter(Boolean);
+  await fetch('/api/logout', {
+    method: 'POST',
+    credentials: 'include'
+  }).catch(() => {});
 
-  buttons.forEach(button => {
-    button.disabled = true;
+  localStorage.clear();
+  sessionStorage.clear();
+
+  document.querySelectorAll('input, textarea, select').forEach(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      el.checked = false;
+    } else {
+      el.value = '';
+    }
   });
 
-  try {
-    try { localStorage.removeItem('pirads_user_email_v1'); } catch (_) {}
-    await fetch('https://api.tulip-pirads.com/api/logout', {
-      method: 'GET',
-      credentials: 'include'
-    });
-  } catch (_) {
-    // Even if the network request fails, return the user to the login screen locally.
-  } finally {
-    buttons.forEach(button => {
-      button.disabled = false;
-    });
-  }
-
-  showLoggedOutScreen('Ви вийшли з акаунта');
+  location.href = '/';
 }
 
 window.logoutFromTulip = logoutFromTulip;
