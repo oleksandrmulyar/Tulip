@@ -569,7 +569,8 @@ function addPointAtCursor(id, x, y){
 }
 
 // UI buttons
-document.getElementById('toggleEdit').addEventListener('click', ()=>{ editMode=!editMode; editSectorId=null; clearHandles(); draw(); });
+const toggleEditBtn=document.getElementById('toggleEdit');
+if(toggleEditBtn){ toggleEditBtn.addEventListener('click', ()=>{ editMode=!editMode; editSectorId=null; clearHandles(); draw(); }); }
 const toggleEllipseEditBtn=document.getElementById('toggleEllipseEdit');
 if(toggleEllipseEditBtn){ toggleEllipseEditBtn.addEventListener('click', ()=>{ draw(); }); }
 document.getElementById('snapMarkers').addEventListener('click', ()=>{ [1,2,3,4,5].forEach(n=>{ const E=autoEllipse(n); if(!E) return; if(!state.lesions[String(n)].ellipses) state.lesions[String(n)].ellipses={}; state.lesions[String(n)].ellipses=E; }); save(); draw(); });
@@ -854,8 +855,9 @@ function updateVol(){
 updateVol();
 
 // Report generation
-document.getElementById('makeReport').addEventListener('click', async()=>{ await buildReportImages(); await buildReportText(); document.getElementById('report').style.display='block'; alert('Звіт зібрано. Натисни «Друк» для PDF.'); });
-document.getElementById('printBtn').addEventListener('click', async()=>{ if(document.getElementById('reportImg').src===''){ await buildReportImages(); await buildReportText(); document.getElementById('report').style.display='block'; } window.print(); });
+document.getElementById('makeReport').addEventListener('click', async()=>{ await buildReportImages(); await buildReportText(); document.getElementById('report').style.display='block'; alert('Звіт зібрано. Для PDF скористайтесь друком браузера.'); });
+const printBtn=document.getElementById('printBtn');
+if(printBtn){ printBtn.addEventListener('click', async()=>{ if(document.getElementById('reportImg').src===''){ await buildReportImages(); await buildReportText(); document.getElementById('report').style.display='block'; } window.print(); }); }
 
 async function buildReportText(){
   try{
@@ -2417,7 +2419,7 @@ if (pib){
 
 (function(){
   function showInfo(){
-    alert('ІНСТРУКЦІЯ КОРИСТУВАЧА\n\nОсновні дії:\n• «Звіт» — сформувати/оновити звіт у блоці «Звіт PI-RADS».\n• «Друк» — друк тільки блоку звіту (без інтерфейсу).\n• «Зберегти як зображення» — експорт звіту у .jpg (за замовч.) або .png.\n  Назва файлу: «ПІБ_ДД.ММ.РРРР». Якщо папку не обрано — файл збережеться у стандартну «Завантаження».\n\nВибір папки для збереження:\n• Натисніть ☰ (праворуч угорі) → «Обрати папку для збереження».\n• Після вибору всі подальші збереження (зображення/файли) підуть у цю папку.\n• Якщо папку не обрано, діє автозбереження у стандартну теку «Завантаження».\n\nІсторія пацієнтів:\n• Кнопка «Історія» у верхній панелі.\n• «Зберегти» у верхній панелі — зберігає ПІБ, усі поля, полігони (pirads21_*) та вміст звіту.\n• У списку: «Відкрити» — відновлює повний стан; «Видалити» — прибирає запис.\n• Змінив ПІБ — запис автоматично оновлюється під цим ім’ям.\n\nЕкспорт/Імпорт полігонів:\n• Через ☰ → «Експорт полігонів / Імпорт полігонів».\n• Експорт — JSON із усіма ключами localStorage «pirads21_*». Імпорт — підвантажує їх назад.\n\nРозробник: Oleksandr Muliar — t.me/oleksandrmuliar');
+    alert('ІНСТРУКЦІЯ КОРИСТУВАЧА\n\nОсновні дії:\n• «Звіт» — сформувати/оновити звіт у блоці «Звіт PI-RADS».\n• «Зберегти як зображення» — експорт звіту у .jpg (за замовч.) або .png.\n  Назва файлу: «ПІБ_ДД.ММ.РРРР». Якщо папку не обрано — файл збережеться у стандартну «Завантаження».\n\nВибір папки для збереження:\n• Натисніть ☰ (праворуч угорі) → «Обрати папку для збереження».\n• Після вибору всі подальші збереження (зображення/файли) підуть у цю папку.\n• Якщо папку не обрано, діє автозбереження у стандартну теку «Завантаження».\n\nІсторія пацієнтів:\n• Кнопка «Історія» у верхній панелі.\n• «Зберегти» у верхній панелі — зберігає ПІБ, усі поля, полігони (pirads21_*) та вміст звіту.\n• У списку: «Відкрити» — відновлює повний стан; «Видалити» — прибирає запис.\n• Змінив ПІБ — запис автоматично оновлюється під цим ім’ям.\n\nЕкспорт/Імпорт полігонів:\n• Через ☰ → «Експорт полігонів / Імпорт полігонів».\n• Експорт — JSON із усіма ключами localStorage «pirads21_*». Імпорт — підвантажує їх назад.\n\nРозробник: Oleksandr Muliar — t.me/oleksandrmuliar');
   }
   document.addEventListener('DOMContentLoaded', function(){
     var b = document.getElementById('btnInfo');
