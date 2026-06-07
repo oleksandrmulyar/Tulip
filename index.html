@@ -1513,6 +1513,8 @@ async function checkLogin() {
 
   const data = await res.json();
 
+  setCurrentAdminUser(data);
+
   if (data.ok) {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
@@ -1528,6 +1530,47 @@ async function checkLogin() {
 }
 
 let ADMIN_GROUPS = [];
+let CURRENT_ADMIN_USER = null;
+
+function setCurrentAdminUser(data) {
+  CURRENT_ADMIN_USER = data && data.ok ? {
+    admin: Boolean(data.admin),
+    role: data.role || ''
+  } : null;
+}
+
+function isDirectorOnly() {
+  return CURRENT_ADMIN_USER?.role === 'director' && !CURRENT_ADMIN_USER?.admin;
+}
+
+function updateDirectorAdminPermissions() {
+  const roleSelect = document.getElementById('newRole');
+  const groupsCard = document.getElementById('groupsAdminCard');
+  const subtitle = document.getElementById('usersAdminSubtitle');
+  const directorOnly = isDirectorOnly();
+
+  if (roleSelect) {
+    roleSelect.querySelectorAll('option').forEach(option => {
+      option.hidden = directorOnly && option.value !== 'doctor';
+    });
+
+    if (directorOnly) {
+      roleSelect.value = 'doctor';
+    }
+
+    roleSelect.disabled = directorOnly;
+  }
+
+  if (groupsCard) {
+    groupsCard.style.display = directorOnly ? 'none' : '';
+  }
+
+  if (subtitle) {
+    subtitle.textContent = directorOnly
+      ? 'Створення doctor та керування доступом в одному прокручуваному вікні.'
+      : 'Створення користувачів, групи та керування доступом в одному прокручуваному вікні.';
+  }
+}
 
 async function loadGroupsAdmin() {
   const res = await fetch('https://api.tulip-pirads.com/api/admin/groups', {
@@ -1554,8 +1597,14 @@ async function loadGroupsAdmin() {
 }
 
 async function createGroupFromSite() {
-  const name = document.getElementById('newGroupName').value.trim();
   const box = document.getElementById('groupsAdminResult');
+
+  if (isDirectorOnly()) {
+    if (box) box.textContent = 'Директор не може створювати групи';
+    return;
+  }
+
+  const name = document.getElementById('newGroupName').value.trim();
 
   if (!name) {
     box.textContent = 'Введіть назву групи';
@@ -1586,13 +1635,15 @@ async function openUsersAdmin() {
   if (modal) modal.style.display = 'block';
   document.body.style.overflow = 'hidden';
 
+  updateDirectorAdminPermissions();
   await loadGroupsAdmin();
   await loadUsersAdmin();
   updateGroupVisibility();
 }
 
 function updateGroupVisibility() {
-  const role = document.getElementById('newRole')?.value;
+  updateDirectorAdminPermissions();
+  const role = isDirectorOnly() ? 'doctor' : document.getElementById('newRole')?.value;
   const group = document.getElementById('newGroup');
   const label = document.getElementById('newGroupLabel');
 
@@ -1650,7 +1701,7 @@ function bindUsersAdminListActions(box) {
 async function createUserFromSite() {
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value;
-  const role = document.getElementById('newRole').value;
+  const role = isDirectorOnly() ? 'doctor' : document.getElementById('newRole').value;
   const group_id = document.getElementById('newGroup')?.value || '';
   const resultBox = document.getElementById('usersAdminResult');
 
@@ -1837,7 +1888,7 @@ checkLogin();
     <header class="users-admin-header">
       <div>
         <h3 id="usersAdminTitle">Користувачі</h3>
-        <p class="users-admin-subtitle">Створення користувачів, групи та керування доступом в одному прокручуваному вікні.</p>
+        <p id="usersAdminSubtitle" class="users-admin-subtitle">Створення користувачів, групи та керування доступом в одному прокручуваному вікні.</p>
       </div>
       <button class="btn users-admin-close" type="button" onclick="closeUsersAdmin()" aria-label="Закрити">×</button>
     </header>
@@ -1881,7 +1932,7 @@ checkLogin();
           <div id="usersListBox" class="users-admin-list"></div>
         </section>
 
-        <section class="users-admin-card" aria-labelledby="createGroupTitle">
+        <section id="groupsAdminCard" class="users-admin-card" aria-labelledby="createGroupTitle">
           <h4 id="createGroupTitle">Групи</h4>
           <label class="users-admin-field">Назва групи
             <input id="newGroupName" placeholder="Назва групи" autocomplete="off">
