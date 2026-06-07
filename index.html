@@ -1584,7 +1584,9 @@ async function createGroupFromSite() {
 }
 
 async function openUsersAdmin() {
-  document.getElementById('usersAdminModal').style.display = 'block';
+  const modal = document.getElementById('usersAdminModal');
+  if (modal) modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
   await loadGroupsAdmin();
   await loadUsersAdmin();
   updateGroupVisibility();
@@ -1608,7 +1610,42 @@ function updateGroupVisibility() {
 }
 
 function closeUsersAdmin() {
-  document.getElementById('usersAdminModal').style.display = 'none';
+  const modal = document.getElementById('usersAdminModal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+window.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.getElementById('usersAdminModal')?.style.display === 'block') {
+    closeUsersAdmin();
+  }
+});
+
+function escapeAdminHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  }[char]));
+}
+
+function bindUsersAdminListActions(box) {
+  if (!box || box.dataset.actionsBound === '1') return;
+  box.dataset.actionsBound = '1';
+  box.addEventListener('click', event => {
+    const button = event.target.closest('[data-user-action]');
+    if (!button) return;
+
+    const username = button.dataset.username || '';
+    const action = button.dataset.userAction;
+
+    if (action === 'password') changeUserPassword(username);
+    if (action === 'rename') renameUser(username);
+    if (action === 'toggle') toggleUserActive(username, Number(button.dataset.nextActive));
+    if (action === 'delete') deleteUser(username);
+  });
 }
 
 async function createUserFromSite() {
@@ -1640,7 +1677,8 @@ async function createUserFromSite() {
 }
 async function loadUsersAdmin() {
   const box = document.getElementById('usersListBox');
-  box.innerHTML = 'Завантаження...';
+  bindUsersAdminListActions(box);
+  box.innerHTML = '<div class="users-admin-empty">Завантаження...</div>';
 
   const res = await fetch('https://api.tulip-pirads.com/api/admin/users', {
     credentials: 'include'
@@ -1649,22 +1687,44 @@ async function loadUsersAdmin() {
   const data = await res.json();
 
   if (!data.ok) {
-    box.textContent = data.error || 'Помилка завантаження';
+    box.innerHTML = `<div class="users-admin-empty">${escapeAdminHtml(data.error || 'Помилка завантаження')}</div>`;
     return;
   }
 
-  box.innerHTML = data.users.map(u => `
-    <div style="border:1px solid #ddd; padding:8px; margin:6px 0; border-radius:8px;">
-      <b>${u.username}</b> — ${u.role} — ${u.group_name || 'без групи'} — ${u.active ? 'активний' : 'вимкнений'}
-      <br>
-      <button onclick="changeUserPassword('${u.username}')">Пароль</button>
-      <button onclick="renameUser('${u.username}')">Перейменувати</button>
-      <button onclick="toggleUserActive('${u.username}', ${u.active ? 0 : 1})">
-        ${u.active ? 'Вимкнути' : 'Увімкнути'}
-      </button>
-      <button onclick="deleteUser('${u.username}')">Видалити</button>
-    </div>
-  `).join('');
+  const users = data.users || [];
+
+  if (!users.length) {
+    box.innerHTML = '<div class="users-admin-empty">Користувачів поки немає</div>';
+    return;
+  }
+
+  box.innerHTML = users.map(u => {
+    const username = String(u.username || '');
+    const safeUsername = escapeAdminHtml(username);
+    const safeRole = escapeAdminHtml(u.role || 'без ролі');
+    const safeGroup = escapeAdminHtml(u.group_name || 'без групи');
+    const active = Boolean(u.active);
+
+    return `
+      <article class="user-card">
+        <div class="user-card__main">
+          <div>
+            <div class="user-card__name">${safeUsername}</div>
+            <div class="user-card__meta">Роль: ${safeRole} · Група: ${safeGroup}</div>
+          </div>
+          <span class="user-card__status ${active ? '' : 'is-disabled'}">${active ? 'активний' : 'вимкнений'}</span>
+        </div>
+        <div class="user-card__actions">
+          <button class="btn" type="button" data-user-action="password" data-username="${safeUsername}">Пароль</button>
+          <button class="btn" type="button" data-user-action="rename" data-username="${safeUsername}">Перейменувати</button>
+          <button class="btn" type="button" data-user-action="toggle" data-username="${safeUsername}" data-next-active="${active ? 0 : 1}">
+            ${active ? 'Вимкнути' : 'Увімкнути'}
+          </button>
+          <button class="btn" type="button" data-user-action="delete" data-username="${safeUsername}">Видалити</button>
+        </div>
+      </article>
+    `;
+  }).join('');
 }
 
 async function changeUserPassword(username) {
@@ -1773,45 +1833,67 @@ checkLogin();
 </script>
 </div>
 
-<div id="usersAdminModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999;">
-  <div style="background:#fff; max-width:520px; margin:60px auto; padding:20px; border-radius:12px;">
-    <h3>Користувачі</h3>
+<div id="usersAdminModal" class="users-admin-backdrop" onclick="if (event.target === this) closeUsersAdmin();">
+  <div class="users-admin-dialog" role="dialog" aria-modal="true" aria-labelledby="usersAdminTitle">
+    <header class="users-admin-header">
+      <div>
+        <h3 id="usersAdminTitle">Користувачі</h3>
+        <p class="users-admin-subtitle">Створення користувачів, групи та керування доступом в одному прокручуваному вікні.</p>
+      </div>
+      <button class="btn users-admin-close" type="button" onclick="closeUsersAdmin()" aria-label="Закрити">×</button>
+    </header>
 
-    <label>Логін</label>
-    <input id="newUsername" style="width:100%; margin-bottom:8px;" placeholder="doctor1">
+    <div class="users-admin-content">
+      <div class="users-admin-grid">
+        <section class="users-admin-card" aria-labelledby="createUserTitle">
+          <h4 id="createUserTitle">Новий користувач</h4>
 
-    <label>Пароль</label>
-    <input id="newPassword" type="password" style="width:100%; margin-bottom:8px;" placeholder="password">
+          <label class="users-admin-field">Логін
+            <input id="newUsername" placeholder="doctor1" autocomplete="off">
+          </label>
 
-    <label>Роль</label>
-    <select id="newRole" onchange="updateGroupVisibility()" style="width:100%; margin-bottom:12px;">
-      <option value="doctor">doctor</option>
-      <option value="director">director</option>
-      <option value="admin">admin</option>
-      <option value="viewer">viewer</option>
-    </select>
+          <label class="users-admin-field">Пароль
+            <input id="newPassword" type="password" placeholder="password" autocomplete="new-password">
+          </label>
 
-    <label id="newGroupLabel">Група</label>
-    <select id="newGroup" style="width:100%; margin-bottom:12px;">
-      <option value="">Без групи / під admin</option>
-    </select>
+          <label class="users-admin-field">Роль
+            <select id="newRole" onchange="updateGroupVisibility()">
+              <option value="doctor">doctor</option>
+              <option value="director">director</option>
+              <option value="admin">admin</option>
+              <option value="viewer">viewer</option>
+            </select>
+          </label>
 
-    <button onclick="createUserFromSite()">Створити</button>
-    <button onclick="closeUsersAdmin()">Закрити</button>
+          <label id="newGroupLabel" class="users-admin-field">Група
+            <select id="newGroup">
+              <option value="">Без групи / під admin</option>
+            </select>
+          </label>
 
-    <div id="usersAdminResult" style="margin-top:12px;"></div>
+          <div class="users-admin-actions">
+            <button class="btn" type="button" onclick="createUserFromSite()">Створити користувача</button>
+          </div>
+          <div id="usersAdminResult" class="users-admin-result" aria-live="polite"></div>
+        </section>
 
-    <hr>
+        <section class="users-admin-card" aria-labelledby="usersListTitle">
+          <h4 id="usersListTitle">Список користувачів</h4>
+          <div id="usersListBox" class="users-admin-list"></div>
+        </section>
 
-    <h4>Групи</h4>
-    <input id="newGroupName" placeholder="Назва групи" style="width:100%; margin-bottom:8px;">
-    <button onclick="createGroupFromSite()">Створити групу</button>
-    <div id="groupsAdminResult" style="margin-top:8px;"></div>
-
-    <hr>
-
-    <h4>Список користувачів</h4>
-    <div id="usersListBox"></div>
+        <section class="users-admin-card" aria-labelledby="createGroupTitle">
+          <h4 id="createGroupTitle">Групи</h4>
+          <label class="users-admin-field">Назва групи
+            <input id="newGroupName" placeholder="Назва групи" autocomplete="off">
+          </label>
+          <div class="users-admin-actions">
+            <button class="btn" type="button" onclick="createGroupFromSite()">Створити групу</button>
+          </div>
+          <div id="groupsAdminResult" class="users-admin-result" aria-live="polite"></div>
+        </section>
+      </div>
+    </div>
   </div>
 </div>
 </body>
