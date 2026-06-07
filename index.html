@@ -134,8 +134,16 @@
   <li><b>Звіт</b> формує текстовий звіт і зображення карти для перегляду перед друком.</li>
   <li><b>Зберегти як зображення</b> експортує карту у форматі, вибраному поруч: <b>PNG</b> або <b>JPEG</b>.</li>
   <li><b>Обрати папку для збереження</b> дозволяє задати теку для подальших файлів; якщо папку не вибрано, браузер використовує стандартні завантаження.</li>
+  <li><b>Друк</b> відкриває друк сформованого звіту або збереження у PDF засобами браузера.</li>
   <li><b>☰</b> відкриває швидке меню з вибором папки та виходом з акаунта.</li>
   <li><b>🌙 Темна</b> перемикає світлу й темну тему інтерфейсу.</li>
+</ul>
+<h3>Редагування полігонів</h3>
+<ul>
+  <li><b>Редагувати полігони</b> вмикає режим корекції контурів секторів.</li>
+  <li>У режимі редагування можна вибрати сектор, переміщати його вузли, додавати точку через <b>Shift + клік</b> та видаляти точку через <b>Alt + клік</b>.</li>
+  <li><b>Автопозиція маркерів</b> автоматично центрує маркери у вибраних секторах.</li>
+  <li>Щоб завершити редагування, повторно натисніть <b>Редагувати полігони</b>.</li>
 </ul>
 <h3>Історія пацієнтів</h3>
 <ul>
@@ -171,7 +179,7 @@
   <button id="makeReport" class="btn">Звіт</button> <button id="btnSaveImage" class="btn">Зберегти як зображення</button> <select id="imgFormat" class="btn" style="margin-left:6px;padding:8px 10px;">
   <option value="png">PNG</option>
   <option value="jpg" selected>JPEG</option>
-</select> <button id="btnChooseFolder" class="btn">Обрати папку для збереження</button>
+</select> <button id="btnChooseFolder" class="btn">Обрати папку для збереження</button><button id="printBtn" class="btn">Друк</button>
 </div>
 
 <div class="wrap">
@@ -204,6 +212,7 @@
       Колір 3: <input type="color" id="c3" value="#38d9a9">
       Колір 4: <input type="color" id="c4" value="#ffd43b">
       Колір 5: <input type="color" id="c5" value="#845ef7">
+      <button id="toggleEdit" class="btn">Редагувати полігони</button>
       <button id="snapMarkers" class="btn">Автопозиція маркерів</button>
     </div>
 
