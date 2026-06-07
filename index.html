@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>PI-RADS 2.1</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2712%27 fill=%27%230f172a%27/%3E%3Ctext x=%2732%27 y=%2742%27 text-anchor=%27middle%27 font-size=%2730%27 fill=%27white%27 font-family=%27Arial,sans-serif%27%3E%F0%9F%8C%B7%3C/text%3E%3C/svg%3E">
 <link rel="shortcut icon" href="/favicon.ico">
@@ -97,7 +100,7 @@
             onclick="(function(){var p=document.getElementById('__info_panel'),b=document.getElementById('__info_back');if(p&&b){p.style.display='none';b.style.display='none';document.body.style.overflow='';}})()">×</button>
   </div>
   <div id="__info_body" style="padding:16px;height:calc(100% - 48px); background:#fff; overflow:auto;">
-    
+
 <h2 style='margin-top:0'>Інструкція користувача до файлу «PI‑RADS — звіт»</h2>
 <h3>Призначення</h3>
 <ul>
@@ -1324,7 +1327,7 @@
 <link rel="stylesheet" href="assets_preserved/tulip.preserved.css">
 </head>
     <body>
-      
+
 
 <!-- GPT_RESET_ALL_EVERYTHING -->
 
@@ -1506,6 +1509,94 @@ document.getElementById('loginForm').addEventListener('submit', function(event) 
   doLogin();
 });
 
+let CURRENT_ADMIN_USER = null;
+
+function currentRole() {
+  return String(CURRENT_ADMIN_USER?.role ?? CURRENT_ADMIN_USER?.user?.role ?? '').toLowerCase();
+}
+
+function currentGroupId() {
+  return String(
+    CURRENT_ADMIN_USER?.group_id
+      ?? CURRENT_ADMIN_USER?.groupId
+      ?? CURRENT_ADMIN_USER?.group?.id
+      ?? CURRENT_ADMIN_USER?.user?.group_id
+      ?? CURRENT_ADMIN_USER?.user?.groupId
+      ?? CURRENT_ADMIN_USER?.user?.group?.id
+      ?? ''
+  );
+}
+
+function currentGroupName() {
+  return String(
+    CURRENT_ADMIN_USER?.group_name
+      ?? CURRENT_ADMIN_USER?.groupName
+      ?? CURRENT_ADMIN_USER?.group?.name
+      ?? CURRENT_ADMIN_USER?.user?.group_name
+      ?? CURRENT_ADMIN_USER?.user?.groupName
+      ?? CURRENT_ADMIN_USER?.user?.group?.name
+      ?? ''
+  );
+}
+
+function isDirectorUser() {
+  return currentRole() === 'director';
+}
+
+function userGroupId(user) {
+  return String(user?.group_id ?? user?.groupId ?? user?.group?.id ?? '');
+}
+
+function userGroupName(user) {
+  return String(user?.group_name ?? user?.groupName ?? user?.group?.name ?? '');
+}
+
+function directorCanSeeUser(user) {
+  if (!isDirectorUser()) return true;
+  if (String(user?.role || '').toLowerCase() !== 'doctor') return false;
+
+  const groupId = currentGroupId();
+  const groupName = currentGroupName();
+
+  if (groupId && userGroupId(user)) return userGroupId(user) === groupId;
+  if (groupName && userGroupName(user)) return userGroupName(user) === groupName;
+
+  return false;
+}
+
+function applyDirectorUserUi() {
+  const isDirector = isDirectorUser();
+  const role = document.getElementById('newRole');
+  const group = document.getElementById('newGroup');
+  const groupCard = document.getElementById('groupsAdminCard');
+  const subtitle = document.getElementById('usersAdminSubtitle');
+
+  if (role) {
+    role.disabled = isDirector;
+    [...role.options].forEach(option => {
+      option.hidden = isDirector && option.value !== 'doctor';
+    });
+    if (isDirector) role.value = 'doctor';
+  }
+
+  if (groupCard) groupCard.style.display = isDirector ? 'none' : '';
+
+  if (group && isDirector) {
+    const groupId = currentGroupId();
+    const groupName = currentGroupName();
+    const label = groupName || groupId || 'Групу не визначено';
+    group.innerHTML = `<option value="${escapeAdminHtml(groupId)}">${escapeAdminHtml(label)}</option>`;
+    group.value = groupId;
+    group.disabled = true;
+  }
+
+  if (subtitle) {
+    subtitle.textContent = isDirector
+      ? 'Директор може створювати, редагувати та видаляти лише лікарів своєї групи.'
+      : 'Створення користувачів, групи та керування доступом в одному прокручуваному вікні.';
+  }
+}
+
 async function checkLogin() {
   const res = await fetch('https://api.tulip-pirads.com/api/me', {
     credentials: 'include'
@@ -1514,13 +1605,14 @@ async function checkLogin() {
   const data = await res.json();
 
   if (data.ok) {
+    CURRENT_ADMIN_USER = data;
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
 
-        const canManageUsers = data.admin || data.role === 'director';
+    const canManageUsers = Boolean(data.admin || data.user?.admin || currentRole() === 'admin' || isDirectorUser());
     document.getElementById('adminUsersBtn').style.display = canManageUsers ? 'inline-block' : 'none';
   } else {
-    const canManageUsers = data.admin || data.role === 'director';
+    CURRENT_ADMIN_USER = null;
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appRoot').style.display = 'none';
     document.getElementById('adminUsersBtn').style.display = 'none';
@@ -1530,6 +1622,14 @@ async function checkLogin() {
 let ADMIN_GROUPS = [];
 
 async function loadGroupsAdmin() {
+  const select = document.getElementById('newGroup');
+  if (!select) return;
+
+  if (isDirectorUser()) {
+    applyDirectorUserUi();
+    return;
+  }
+
   const res = await fetch('https://api.tulip-pirads.com/api/admin/groups', {
     credentials: 'include'
   });
@@ -1543,19 +1643,22 @@ async function loadGroupsAdmin() {
 
   ADMIN_GROUPS = data.groups || [];
 
-  const select = document.getElementById('newGroup');
-  if (!select) return;
-
+  select.disabled = false;
   select.innerHTML =
     '<option value="">Без групи / під admin</option>' +
     ADMIN_GROUPS.map(g =>
-      `<option value="${g.id}">${g.name}</option>`
-                    ).join('');
+      `<option value="${escapeAdminHtml(g.id)}">${escapeAdminHtml(g.name)}</option>`
+    ).join('');
 }
 
 async function createGroupFromSite() {
   const name = document.getElementById('newGroupName').value.trim();
   const box = document.getElementById('groupsAdminResult');
+
+  if (isDirectorUser()) {
+    box.textContent = 'Директор не може створювати групи';
+    return;
+  }
 
   if (!name) {
     box.textContent = 'Введіть назву групи';
@@ -1586,6 +1689,7 @@ async function openUsersAdmin() {
   if (modal) modal.style.display = 'block';
   document.body.style.overflow = 'hidden';
 
+  applyDirectorUserUi();
   await loadGroupsAdmin();
   await loadUsersAdmin();
   updateGroupVisibility();
@@ -1597,6 +1701,15 @@ function updateGroupVisibility() {
   const label = document.getElementById('newGroupLabel');
 
   if (!group || !label) return;
+
+  if (isDirectorUser()) {
+    group.style.display = 'block';
+    label.style.display = 'block';
+    group.disabled = true;
+    return;
+  }
+
+  group.disabled = false;
 
   if (role === 'doctor' || role === 'viewer' || role === 'director') {
     group.style.display = 'block';
@@ -1650,9 +1763,19 @@ function bindUsersAdminListActions(box) {
 async function createUserFromSite() {
   const username = document.getElementById('newUsername').value.trim();
   const password = document.getElementById('newPassword').value;
-  const role = document.getElementById('newRole').value;
-  const group_id = document.getElementById('newGroup')?.value || '';
+  let role = document.getElementById('newRole').value;
+  let group_id = document.getElementById('newGroup')?.value || '';
   const resultBox = document.getElementById('usersAdminResult');
+
+  if (isDirectorUser()) {
+    role = 'doctor';
+    group_id = currentGroupId() || group_id;
+
+    if (!group_id && !currentGroupName()) {
+      resultBox.textContent = 'Групу директора не визначено';
+      return;
+    }
+  }
 
   resultBox.textContent = 'Створення...';
 
@@ -1660,10 +1783,16 @@ async function createUserFromSite() {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, role, group_id })
-        });
+    body: JSON.stringify({
+      username,
+      password,
+      role,
+      group_id,
+      group_name: isDirectorUser() ? currentGroupName() : undefined
+    })
+  });
 
-    const data = await res.json();
+  const data = await res.json();
 
   if (data.ok) {
     resultBox.textContent = 'Користувача створено: ' + data.username;
@@ -1682,7 +1811,7 @@ async function loadUsersAdmin() {
   const res = await fetch('https://api.tulip-pirads.com/api/admin/users', {
     credentials: 'include'
   });
-  
+
   const data = await res.json();
 
   if (!data.ok) {
@@ -1690,10 +1819,13 @@ async function loadUsersAdmin() {
     return;
   }
 
-    const users = data.users || [];
+  const allUsers = data.users || [];
+  const users = isDirectorUser() ? allUsers.filter(directorCanSeeUser) : allUsers;
 
   if (!users.length) {
-    box.innerHTML = '<div class="users-admin-empty">Користувачів поки немає</div>';
+    box.innerHTML = isDirectorUser()
+      ? '<div class="users-admin-empty">У вашій групі поки немає лікарів</div>'
+      : '<div class="users-admin-empty">Користувачів поки немає</div>';
     return;
   }
 
@@ -1701,7 +1833,7 @@ async function loadUsersAdmin() {
     const username = String(u.username || '');
     const safeUsername = escapeAdminHtml(username);
     const safeRole = escapeAdminHtml(u.role || 'без ролі');
-    const safeGroup = escapeAdminHtml(u.group_name || 'без групи');
+    const safeGroup = escapeAdminHtml(userGroupName(u) || 'без групи');
     const active = Boolean(u.active);
 
     return `
@@ -1739,7 +1871,7 @@ async function changeUserPassword(username) {
   });
 
   const data = await res.json();
-  
+
   if (!data.ok) {
     alert(data.error || 'Помилка зміни пароля');
     return;
@@ -1837,7 +1969,7 @@ checkLogin();
     <header class="users-admin-header">
       <div>
         <h3 id="usersAdminTitle">Користувачі</h3>
-        <p class="users-admin-subtitle">Створення користувачів, групи та керування доступом в одному прокручуваному вікні.</p>
+        <p id="usersAdminSubtitle" class="users-admin-subtitle">Створення користувачів, групи та керування доступом в одному прокручуваному вікні.</p>
       </div>
       <button class="btn users-admin-close" type="button" onclick="closeUsersAdmin()" aria-label="Закрити">×</button>
     </header>
@@ -1881,7 +2013,7 @@ checkLogin();
           <div id="usersListBox" class="users-admin-list"></div>
         </section>
 
-        <section class="users-admin-card" aria-labelledby="createGroupTitle">
+        <section id="groupsAdminCard" class="users-admin-card" aria-labelledby="createGroupTitle">
           <h4 id="createGroupTitle">Групи</h4>
           <label class="users-admin-field">Назва групи
             <input id="newGroupName" placeholder="Назва групи" autocomplete="off">
