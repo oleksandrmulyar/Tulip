@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Вибір положення матки</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app" aria-live="polite">
+      <section id="gallery-view" class="view">
+        <h1>Оберіть положення</h1>
+        <div class="gallery" id="gallery"></div>
+      </section>
+
+      <section id="detail-view" class="view detail" hidden>
+        <a class="back-link" href="./" aria-label="Повернутися до списку зображень">← Назад до вибору</a>
+        <div class="detail-workspace">
+          <div class="detail-layout" aria-label="Відкрите зображення та еталонне зображення матки">
+            <figure class="detail-card">
+              <div class="image-stage" data-marker-surface="selected">
+                <img id="detail-image" src="" alt="" />
+              </div>
+              <figcaption class="detail-card-actions">
+                <button class="download-image-button" type="button" data-download-surface="selected">Зберегти зображення 1</button>
+              </figcaption>
+            </figure>
+            <figure class="detail-card detail-card-reference">
+              <div class="image-stage" data-marker-surface="reference">
+                <img id="reference-image" src="uterus.png" alt="Еталонне зображення матки" />
+              </div>
+              <figcaption class="detail-card-actions">
+                <button class="download-image-button" type="button" data-download-surface="reference">Зберегти зображення 2</button>
+              </figcaption>
+            </figure>
+          </div>
+
+          <section class="myoma-panel" aria-label="Міоми">
+            <div class="myoma-panel-header">
+              <h2>Міоми</h2>
+              <button class="add-myoma-button" type="button" id="add-myoma" aria-label="Додати міому">+</button>
+            </div>
+
+            <div class="myoma-table-wrap">
+              <table class="myoma-table">
+                <thead>
+                  <tr>
+                    <th scope="col">№ утворення</th>
+                    <th scope="col">Категорія FIGO</th>
+                    <th scope="col">Колір</th>
+                    <th scope="col">Дії</th>
+                  </tr>
+                </thead>
+                <tbody id="myoma-list"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="myoma-panel" aria-label="Утвори">
+            <div class="myoma-panel-header">
+              <h2>Утвори</h2>
+              <button class="add-myoma-button" type="button" id="add-formation" aria-label="Додати утвір">+</button>
+            </div>
+
+            <div class="myoma-table-wrap">
+              <table class="myoma-table">
+                <thead>
+                  <tr>
+                    <th scope="col">№ утвору</th>
+                    <th scope="col">Назва</th>
+                    <th scope="col">Колір</th>
+                    <th scope="col">Дії</th>
+                  </tr>
+                </thead>
+                <tbody id="formation-list"></tbody>
+              </table>
+            </div>
+          </section>
+
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

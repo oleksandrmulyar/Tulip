@@ -1,0 +1,450 @@
+:root {
+  color-scheme: light;
+  --bg: #fff7f4;
+  --card: #ffffff;
+  --text: #2c1b1f;
+  --muted: #6f545c;
+  --accent: #b64f6a;
+  --accent-dark: #803348;
+  --ring: rgba(182, 79, 106, 0.28);
+  --shadow: 0 22px 60px rgba(91, 44, 58, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(255, 212, 222, 0.72), transparent 34rem),
+    linear-gradient(135deg, #fff7f4 0%, #f8eef2 100%);
+}
+
+.app {
+  width: min(1280px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 44px 0;
+}
+
+.view {
+  animation: fade-in 220ms ease-out;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--accent-dark);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: 780px;
+  margin: 0;
+  font-size: clamp(1.8rem, 4.2vw, 3.35rem);
+  line-height: 1.04;
+}
+
+.lead {
+  max-width: 650px;
+  margin: 14px 0 28px;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.gallery {
+  display: grid;
+  margin-top: clamp(24px, 4vw, 44px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.image-card {
+  display: flex;
+  min-height: 100%;
+  padding: 12px;
+  flex-direction: column;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(128, 51, 72, 0.12);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.image-card:hover,
+.image-card:focus-visible {
+  transform: translateY(-5px);
+  border-color: rgba(182, 79, 106, 0.52);
+  box-shadow: 0 28px 74px rgba(91, 44, 58, 0.22);
+}
+
+.image-card:focus-visible {
+  outline: 4px solid var(--ring);
+  outline-offset: 4px;
+}
+
+.image-card img,
+.detail-card img {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border-radius: 18px;
+  object-fit: contain;
+}
+
+.image-card img {
+  aspect-ratio: 1 / 1;
+  padding: 10px;
+}
+
+.caption {
+  color: var(--accent-dark);
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: lowercase;
+}
+
+.detail {
+  min-height: calc(100vh - 112px);
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+
+.back-link {
+  justify-self: start;
+  color: var(--accent-dark);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.back-link:hover,
+.back-link:focus-visible {
+  text-decoration: underline;
+}
+
+.detail-workspace {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(18px, 3vw, 30px);
+  align-items: start;
+}
+
+.detail-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(14px, 2vw, 24px);
+}
+
+.detail-card {
+  min-width: 0;
+  margin: 0;
+  padding: clamp(12px, 2.4vw, 22px);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(128, 51, 72, 0.12);
+  border-radius: 32px;
+  box-shadow: var(--shadow);
+}
+
+.detail-card img {
+  max-height: min(66vh, 680px);
+  padding: clamp(6px, 1.2vw, 10px);
+}
+
+.detail-card-reference {
+  border-color: rgba(182, 79, 106, 0.24);
+}
+
+@media (max-width: 900px) {
+  .gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detail-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .app {
+    width: min(100% - 20px, 1120px);
+    padding: 24px 0;
+  }
+
+  .gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .image-card {
+    border-radius: 20px;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.image-stage {
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 18px;
+  touch-action: none;
+}
+
+.myoma-marker {
+  --marker-size: 58px;
+  position: absolute;
+  z-index: 2;
+  display: inline-grid;
+  width: var(--marker-width, var(--marker-size));
+  height: var(--marker-height, var(--marker-size));
+  place-items: center;
+  padding: 0;
+  color: #fff;
+  font-size: clamp(0.5rem, calc(min(var(--marker-width, var(--marker-size)), var(--marker-height, var(--marker-size))) * 0.16), 0.95rem);
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  background: var(--myoma-color, rgba(182, 79, 106, 0.92));
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--myoma-color, #b64f6a) 34%, transparent);
+  cursor: grab;
+  transform: translate(-50%, -50%);
+  user-select: none;
+}
+
+.myoma-marker:focus-visible {
+  outline: 4px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.myoma-marker.is-dragging {
+  cursor: grabbing;
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.myoma-marker.is-resize-ready,
+.myoma-marker.is-resizing {
+  cursor: nwse-resize;
+}
+
+.formation-marker {
+  background: color-mix(in srgb, var(--myoma-color, #27ae60) 78%, #fff 10%);
+}
+
+.myoma-marker.is-linear-shape {
+  min-height: 8px;
+  border-radius: 999px;
+}
+
+.myoma-marker.is-resize-ready::after,
+.myoma-marker.is-resizing::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border: 2px dashed rgba(128, 51, 72, 0.36);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.myoma-panel {
+  width: 100%;
+  padding: clamp(16px, 2.4vw, 24px);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(128, 51, 72, 0.12);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+}
+
+.myoma-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.myoma-panel-header h2 {
+  margin: 0;
+  color: var(--accent-dark);
+  font-size: 1.1rem;
+}
+
+.detail-card-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.download-image-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  background: var(--accent);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 12px 28px rgba(182, 79, 106, 0.24);
+  cursor: pointer;
+}
+
+.download-image-button:hover,
+.download-image-button:focus-visible {
+  background: var(--accent-dark);
+}
+
+.add-myoma-button {
+  display: inline-grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  color: #fff;
+  font: inherit;
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+  background: var(--accent);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 12px 28px rgba(182, 79, 106, 0.28);
+  cursor: pointer;
+}
+
+.add-myoma-button:hover,
+.add-myoma-button:focus-visible {
+  background: var(--accent-dark);
+}
+
+.add-myoma-button:focus-visible,
+.delete-myoma-button:focus-visible,
+.download-image-button:focus-visible,
+.figo-input:focus-visible,
+.annotation-label-input:focus-visible,
+.color-input:focus-visible {
+  outline: 4px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.myoma-table-wrap {
+  overflow-x: auto;
+}
+
+.myoma-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border: 1px solid rgba(128, 51, 72, 0.12);
+  border-radius: 18px;
+}
+
+.myoma-table th,
+.myoma-table td {
+  padding: 13px 16px;
+  text-align: left;
+  border-bottom: 1px solid rgba(128, 51, 72, 0.1);
+}
+
+.myoma-table th {
+  color: var(--accent-dark);
+  font-size: 0.86rem;
+  font-weight: 900;
+  background: rgba(255, 247, 244, 0.9);
+}
+
+.myoma-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.myoma-table tbody tr {
+  border-left: 6px solid var(--myoma-color, var(--accent));
+}
+
+.myoma-table [data-myoma-number-cell] {
+  color: var(--myoma-color, var(--accent-dark));
+  font-weight: 900;
+}
+
+.figo-input,
+.annotation-label-input {
+  width: min(240px, 100%);
+  padding: 10px 12px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  background: #fff;
+  border: 1px solid rgba(128, 51, 72, 0.2);
+  border-radius: 12px;
+}
+
+.color-input {
+  width: 48px;
+  height: 38px;
+  padding: 3px;
+  background: #fff;
+  border: 1px solid rgba(128, 51, 72, 0.2);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.myoma-action-cell {
+  width: 1%;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.delete-myoma-button {
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  padding: 0;
+  color: var(--accent-dark);
+  font: inherit;
+  font-size: 1.45rem;
+  font-weight: 900;
+  line-height: 1;
+  background: rgba(255, 247, 244, 0.94);
+  border: 1px solid rgba(128, 51, 72, 0.18);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.delete-myoma-button:hover,
+.delete-myoma-button:focus-visible {
+  color: #fff;
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
