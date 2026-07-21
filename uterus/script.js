@@ -65,7 +65,6 @@ const markerSurfaces = document.querySelectorAll("[data-marker-surface]");
 const downloadImageButtons = document.querySelectorAll("[data-download-surface]");
 const reportButton = document.querySelector("#generate-report");
 const downloadReportButton = document.querySelector("#download-report-image");
-const reportOutput = document.querySelector("#report-output");
 const reportPreview = document.querySelector("#report-preview");
 
 const annotationCounters = { myoma: 0, formation: 0 };
@@ -722,7 +721,7 @@ const getAnnotationPreviewItems = (type) => {
 
 const getSurfaceDataUrl = (surfaceName) => renderSurfaceToCanvas(surfaceName)?.toDataURL("image/png") || "";
 
-const renderReportPreview = (lines) => {
+const renderReportPreview = () => {
   if (!reportPreview) return;
 
   const patientName = getValue("#patient-name");
@@ -731,6 +730,7 @@ const renderReportPreview = (lines) => {
   const endometriumSize = getValue("#endometrium-size");
   const previewImages = [getSurfaceDataUrl("selected"), getSurfaceDataUrl("reference")].filter(Boolean);
   const lesions = [...getAnnotationPreviewItems("myoma"), ...getAnnotationPreviewItems("formation")];
+  const ovaryLines = [buildOvaryLine("Правий", "right"), buildOvaryLine("Лівий", "left")].filter(Boolean);
   const lesionHtml = lesions.map((item) => `
     <div class="report-preview-lesion">
       <div class="report-preview-lesion-title"><span class="report-preview-dot" style="--myoma-color:${escapeHtml(item.color)}"></span>${escapeHtml(item.type === "myoma" ? `Міома ${item.number}:` : `Утвір ${item.number}:`)}</div>
@@ -750,6 +750,7 @@ const renderReportPreview = (lines) => {
       ${(uterusPosition || uterusSize) ? `<p><strong>Матка:</strong>${uterusPosition ? `<br>${escapeHtml(uterusPosition)}` : ""}${uterusSize ? `<br>${escapeHtml(uterusSize)} мм` : ""}</p>` : ""}
       ${endometriumSize ? `<p><strong>Ендометрій:</strong> ${escapeHtml(endometriumSize)} мм</p>` : ""}
       ${lesionHtml || `<p class="report-preview-section"><strong>Ураження:</strong> —</p>`}
+      ${ovaryLines.length ? `<div class="report-preview-ovaries"><p><strong>Яєчники:</strong></p>${ovaryLines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div>` : ""}
     </div>`;
 };
 
@@ -822,9 +823,7 @@ const generateReport = () => {
   const ovaryLines = [buildOvaryLine("Правий", "right"), buildOvaryLine("Лівий", "left")].filter(Boolean);
   if (ovaryLines.length) lines.push("Яєчники:", ...ovaryLines);
 
-  const reportText = lines.join("\n") || "Дані для звіту не заповнені.";
-  reportOutput.value = reportText;
-  renderReportPreview(lines);
+  renderReportPreview();
 };
 
 setupConditionalFields("right");
@@ -837,38 +836,81 @@ addFormationButton.addEventListener("click", () => addAnnotation("formation"));
 downloadImageButtons.forEach((button) => {
   button.addEventListener("click", () => downloadSurfaceImage(button.dataset.downloadSurface));
 });
+const wrapCanvasText = (context, text, x, y, maxWidth, lineHeight) => {
+  const words = String(text).split(" ");
+  let current = "";
+
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (context.measureText(next).width > maxWidth && current) {
+      context.fillText(current, x, y);
+      y += lineHeight;
+      current = word;
+    } else {
+      current = next;
+    }
+  });
+
+  if (current) {
+    context.fillText(current, x, y);
+    y += lineHeight;
+  }
+
+  return y;
+};
+
+const drawCanvasReportSection = (context, title, lines, x, y, maxWidth, color = "#0f172a") => {
+  context.fillStyle = color;
+  context.font = "700 18px sans-serif";
+  y = wrapCanvasText(context, title, x, y, maxWidth, 24);
+  context.font = "16px sans-serif";
+  lines.forEach((line) => {
+    y = wrapCanvasText(context, line, x, y + 4, maxWidth, 23);
+  });
+  return y + 12;
+};
+
 const downloadReportImage = () => {
   generateReport();
   const canvas = document.createElement("canvas");
-  canvas.width = 1400;
-  canvas.height = 950;
+  canvas.width = 653;
+  canvas.height = 643;
   const context = canvas.getContext("2d");
   context.fillStyle = "#fff";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = "#0f172a";
-  context.font = "700 34px sans-serif";
-  context.fillText("МРТ матки — звіт", 40, 55);
+
+  context.fillStyle = "#00112d";
+  context.font = "700 22px sans-serif";
+  context.fillText("МРТ матки — звіт", 10, 50);
+
   [renderSurfaceToCanvas("selected"), renderSurfaceToCanvas("reference")].filter(Boolean).forEach((source, index) => {
-    const y = 90 + index * 340;
-    context.drawImage(source, 40, y, 320, 320);
+    const y = 78 + index * 264;
+    context.strokeStyle = "#dddddd";
+    context.strokeRect(10, y, 260, 253);
+    context.drawImage(source, 20, y + 10, 240, 233);
   });
-  context.font = "24px sans-serif";
-  const textLines = (reportOutput.value || "").split("\n");
-  let y = 100;
-  textLines.forEach((line) => {
-    const words = line.split(" ");
-    let current = "";
-    words.forEach((word) => {
-      const next = current ? `${current} ${word}` : word;
-      if (context.measureText(next).width > 920) {
-        context.fillText(current, 420, y);
-        y += 34;
-        current = word;
-      } else current = next;
-    });
-    if (current) context.fillText(current, 420, y);
-    y += 40;
+
+  const x = 292;
+  const maxWidth = 340;
+  let y = 44;
+  const patientName = getValue("#patient-name");
+  if (patientName) y = drawCanvasReportSection(context, patientName, [], x, y, maxWidth);
+  const uterusPosition = getValue("#uterus-position");
+  const uterusSize = getDimensionValue("#uterus-size-length", "#uterus-size-ap", "#uterus-size-width");
+  const uterusLines = [uterusPosition, uterusSize ? `${uterusSize} мм` : ""].filter(Boolean);
+  if (uterusLines.length) y = drawCanvasReportSection(context, "Матка:", uterusLines, x, y, maxWidth);
+  const endometriumSize = getValue("#endometrium-size");
+  if (endometriumSize) y = drawCanvasReportSection(context, `Ендометрій: ${endometriumSize} мм`, [], x, y, maxWidth);
+
+  [...getAnnotationPreviewItems("myoma"), ...getAnnotationPreviewItems("formation")].forEach((item) => {
+    const title = item.type === "myoma" ? `● Міома ${item.number}:` : `● Утвір ${item.number}:`;
+    const lines = [item.size ? `${item.size} мм` : "", item.label, item.wall !== "—" ? `Стінка: ${item.wall}` : "", item.location !== "—" ? `Стінка: ${item.location}` : ""].filter(Boolean);
+    y = drawCanvasReportSection(context, title, lines, x, y, maxWidth, item.color);
   });
+
+  const ovaryLines = [buildOvaryLine("Правий", "right"), buildOvaryLine("Лівий", "left")].filter(Boolean);
+  if (ovaryLines.length) y = drawCanvasReportSection(context, "Яєчники:", ovaryLines, x, y, maxWidth);
+
   const link = document.createElement("a");
   link.download = `${getPatientFileBase()}_${getDownloadDatePart()}.png`;
   link.href = canvas.toDataURL("image/png");
