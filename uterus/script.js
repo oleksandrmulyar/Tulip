@@ -148,7 +148,18 @@ const getDownloadDatePart = (date = new Date()) => {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
 
-  return `${year}-${month}-${day}`;
+  return `${day}.${month}.${year}`;
+};
+
+const getPatientFileBase = () => {
+  const value = getValue("#patient-name");
+  if (!value) return "report";
+
+  try {
+    return value.replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_+|_+$/g, "") || "report";
+  } catch (_) {
+    return value.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "report";
+  }
 };
 
 const drawRoundedRect = (context, x, y, width, height, radius) => {
@@ -243,7 +254,7 @@ const downloadSurfaceImage = (surfaceName) => {
 
   const link = document.createElement("a");
   const imageName = getSafeFilePart(getFileNameFromImageSource(image.currentSrc || image.src));
-  link.download = `${imageName}-${getDownloadDatePart()}.png`;
+  link.download = `${getPatientFileBase()}_${imageName}_${getDownloadDatePart()}.png`;
   link.href = canvas.toDataURL("image/png");
   link.click();
 };
@@ -637,7 +648,7 @@ const addAnnotation = (type = "myoma") => {
   const wallSelect = document.createElement("select");
   wallSelect.className = "report-input annotation-wall-select";
   wallSelect.setAttribute("aria-label", `Стінка для ${config.numberLabel} ${annotationNumber}`);
-  ["", "передня стінка", "задня стінка", "ліва бокова стінка", "права бокова стінка", "дно матки", "шийка матки", "інше"].forEach((value) => {
+  ["", "передня", "задня", "ліва бокова", "права бокова", "дно матки", "шийка матки", "інше"].forEach((value) => {
     const option = document.createElement("option");
     option.value = value;
     option.textContent = value || "Оберіть стінку";
@@ -713,7 +724,7 @@ const getAnnotationPreviewItems = (type) => {
   const config = annotationConfigs[type];
   return getMyomaRows(type).map((row, index) => {
     const number = index + 1;
-    const label = formatAnnotationLabel(getRowValue(row, type), type) || config.numberLabel;
+    const label = formatAnnotationLabel(getRowValue(row, type), type);
     const size = [...row.querySelectorAll(".annotation-size-input")].map((input) => input.value.trim()).filter(Boolean).join("×");
     const wall = row.querySelector(".annotation-wall-select")?.value.trim() || "—";
     const location = row.querySelector(".annotation-location-input")?.value.trim() || "—";
@@ -764,7 +775,7 @@ const buildAnnotationReportLines = (type, title) => {
     const size = [...row.querySelectorAll(".annotation-size-input")].map((input) => input.value.trim()).filter(Boolean).join("×");
     const wall = row.querySelector(".annotation-wall-select")?.value.trim();
     const location = row.querySelector(".annotation-location-input")?.value.trim();
-    const parts = [`${number}) ${label || config.numberLabel}`];
+    const parts = [type === "formation" && !label ? `${number})` : `${number}) ${label || config.numberLabel}`];
 
     if (size) parts.push(`розміри ${size} мм`);
     if (wall) parts.push(wall);
@@ -819,7 +830,7 @@ const generateReport = () => {
   if (endometriumSize) lines.push(`Ендометрій: ${endometriumSize} мм.`);
   if (additionalNotes) lines.push(`Додатково: ${additionalNotes}.`);
 
-  lines.push(...buildAnnotationReportLines("myoma", "Міоми / FIGO"));
+  lines.push(...buildAnnotationReportLines("myoma", "Міоми"));
   lines.push(...buildAnnotationReportLines("formation", "Інші ураження"));
 
   const ovaryLines = [buildOvaryLine("Правий", "right"), buildOvaryLine("Лівий", "left")].filter(Boolean);
@@ -852,8 +863,8 @@ const downloadReportImage = () => {
   context.font = "700 34px sans-serif";
   context.fillText("МРТ матки — звіт", 40, 55);
   [renderSurfaceToCanvas("selected"), renderSurfaceToCanvas("reference")].filter(Boolean).forEach((source, index) => {
-    const x = 40 + index * 360;
-    context.drawImage(source, x, 90, 320, 320);
+    const y = 90 + index * 340;
+    context.drawImage(source, 40, y, 320, 320);
   });
   context.font = "24px sans-serif";
   const textLines = (reportOutput.value || "").split("\n");
@@ -863,17 +874,17 @@ const downloadReportImage = () => {
     let current = "";
     words.forEach((word) => {
       const next = current ? `${current} ${word}` : word;
-      if (context.measureText(next).width > 600) {
-        context.fillText(current, 760, y);
+      if (context.measureText(next).width > 920) {
+        context.fillText(current, 420, y);
         y += 34;
         current = word;
       } else current = next;
     });
-    if (current) context.fillText(current, 760, y);
+    if (current) context.fillText(current, 420, y);
     y += 40;
   });
   const link = document.createElement("a");
-  link.download = `uterus-report-${getDownloadDatePart()}.png`;
+  link.download = `${getPatientFileBase()}_${getDownloadDatePart()}.png`;
   link.href = canvas.toDataURL("image/png");
   link.click();
 };
