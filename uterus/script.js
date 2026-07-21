@@ -664,19 +664,6 @@ const addAnnotation = (type = "myoma") => {
   locationStack.append(wallSelect, locationInput);
   locationCell.append(locationStack);
 
-  const angleCell = document.createElement("td");
-  const angleInput = document.createElement("input");
-  angleInput.className = "report-input annotation-angle-input";
-  angleInput.type = "number";
-  angleInput.inputMode = "decimal";
-  angleInput.min = "0";
-  angleInput.max = "359";
-  angleInput.step = "5";
-  angleInput.value = "0";
-  angleInput.setAttribute("aria-label", `Кут нахилу для ${config.numberLabel} ${annotationNumber}`);
-  angleInput.addEventListener("input", () => getMyomaMarkers(annotationId).forEach((marker) => updateMarkerAngle(marker, angleInput.value)));
-  angleCell.append(angleInput);
-
   const colorCell = document.createElement("td");
   colorCell.append(createColorControl(annotationId, annotationNumber, type));
 
@@ -687,7 +674,7 @@ const addAnnotation = (type = "myoma") => {
   row.append(numberCell);
   row.append(categoryCell);
   row.append(sizeCell, locationCell);
-  row.append(angleCell, colorCell, actionCell);
+  row.append(colorCell, actionCell);
   annotationLists[type].append(row);
 
   markerSurfaces.forEach((surface) => createMarker(annotationId, annotationNumber, category, surface, type, initialShape));
@@ -763,7 +750,6 @@ const renderReportPreview = (lines) => {
       ${(uterusPosition || uterusSize) ? `<p><strong>Матка:</strong>${uterusPosition ? `<br>${escapeHtml(uterusPosition)}` : ""}${uterusSize ? `<br>${escapeHtml(uterusSize)} мм` : ""}</p>` : ""}
       ${endometriumSize ? `<p><strong>Ендометрій:</strong> ${escapeHtml(endometriumSize)} мм</p>` : ""}
       ${lesionHtml || `<p class="report-preview-section"><strong>Ураження:</strong> —</p>`}
-      <div class="report-preview-section">${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div>
     </div>`;
 };
 
