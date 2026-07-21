@@ -64,6 +64,7 @@ const annotationLists = Object.fromEntries(
 const markerSurfaces = document.querySelectorAll("[data-marker-surface]");
 const downloadImageButtons = document.querySelectorAll("[data-download-surface]");
 const reportButton = document.querySelector("#generate-report");
+const downloadReportButton = document.querySelector("#download-report-image");
 const reportOutput = document.querySelector("#report-output");
 const reportPreview = document.querySelector("#report-preview");
 
@@ -186,28 +187,29 @@ const drawMarkerToCanvas = (context, marker, scale) => {
   const y = (Number(marker.dataset.y) / 100) * context.canvas.height;
   const width = Number(marker.dataset.width || markerDefaultSize) * scale;
   const height = Number(marker.dataset.height || marker.dataset.width || markerDefaultSize) * scale;
-  const left = x - width / 2;
-  const top = y - height / 2;
   const color = marker.dataset.myomaColor || getComputedStyle(marker).getPropertyValue("--myoma-color") || "#b64f6a";
+  const angle = Number(marker.dataset.angle || 0);
 
   context.save();
+  context.translate(x, y);
+  context.rotate((angle * Math.PI) / 180);
   context.fillStyle = color.trim();
-  drawRoundedRect(context, left, top, width, height, Math.max(width, height) / 2);
+  drawRoundedRect(context, -width / 2, -height / 2, width, height, Math.max(width, height) / 2);
   context.fill();
 
-  const label = marker.textContent.trim();
+  const label = marker.querySelector(".marker-label")?.textContent.trim() || marker.textContent.trim();
   if (label) {
     context.fillStyle = "#fff";
     context.font = `900 ${Math.max(12, Math.min(width, height) * 0.22)}px sans-serif`;
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.fillText(label, x, y, width * 0.82);
+    context.fillText(label, 0, 0, width * 0.82);
   }
 
   context.restore();
 };
 
-const downloadSurfaceImage = (surfaceName) => {
+const renderSurfaceToCanvas = (surfaceName) => {
   const stage = document.querySelector(`[data-marker-surface="${surfaceName}"]`);
   const image = stage?.querySelector("img");
 
@@ -229,6 +231,15 @@ const downloadSurfaceImage = (surfaceName) => {
   context.drawImage(image, drawBox.x, drawBox.y, drawBox.width, drawBox.height);
 
   stage.querySelectorAll(".myoma-marker").forEach((marker) => drawMarkerToCanvas(context, marker, scale));
+
+  return canvas;
+};
+
+const downloadSurfaceImage = (surfaceName) => {
+  const canvas = renderSurfaceToCanvas(surfaceName);
+  const image = document.querySelector(`[data-marker-surface="${surfaceName}"] img`);
+
+  if (!canvas || !image) return;
 
   const link = document.createElement("a");
   const imageName = getSafeFilePart(getFileNameFromImageSource(image.currentSrc || image.src));
@@ -283,6 +294,12 @@ const updateMarkerSize = (marker, width, height = width) => {
   marker.style.setProperty("--marker-size", `${Math.max(nextWidth, nextHeight)}px`);
 };
 
+const updateMarkerAngle = (marker, angle) => {
+  const normalizedAngle = ((Number(angle) % 360) + 360) % 360;
+  marker.dataset.angle = normalizedAngle;
+  marker.style.setProperty("--marker-angle", `${normalizedAngle}deg`);
+};
+
 const getShapePreset = (shape) => shapePresets[shape] ?? shapePresets["округле"];
 
 const applyMarkerShape = (marker, shape, preserveSize = false) => {
@@ -312,6 +329,13 @@ const isPointerOnMarkerEdge = (marker, event) => {
   return edgeDistance <= markerResizeEdgeWidth;
 };
 
+const rotateMarkerFromPointer = (marker, event) => {
+  const rect = marker.parentElement.getBoundingClientRect();
+  const centerX = rect.left + (Number(marker.dataset.x) / 100) * rect.width;
+  const centerY = rect.top + (Number(marker.dataset.y) / 100) * rect.height;
+  updateMarkerAngle(marker, Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI) + 90);
+};
+
 const resizeMarkerFromPointer = (marker, event) => {
   const stage = marker.parentElement;
   const stageRect = stage.getBoundingClientRect();
@@ -332,6 +356,13 @@ const makeMarkerInteractive = (marker) => {
   marker.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     marker.setPointerCapture(event.pointerId);
+
+    if (event.target?.classList?.contains("marker-rotate-handle")) {
+      marker.dataset.action = "rotate";
+      marker.classList.add("is-rotating");
+      rotateMarkerFromPointer(marker, event);
+      return;
+    }
 
     if (isPointerOnMarkerEdge(marker, event)) {
       marker.dataset.action = "resize";
@@ -355,6 +386,11 @@ const makeMarkerInteractive = (marker) => {
       return;
     }
 
+    if (marker.dataset.action === "rotate") {
+      rotateMarkerFromPointer(marker, event);
+      return;
+    }
+
     const stage = marker.parentElement;
     const rect = stage.getBoundingClientRect();
     const x = clamp(((event.clientX - rect.left) / rect.width) * 100, 0, 100);
@@ -375,7 +411,7 @@ const makeMarkerInteractive = (marker) => {
     }
 
     delete marker.dataset.action;
-    marker.classList.remove("is-dragging", "is-resizing", "is-resize-ready");
+    marker.classList.remove("is-dragging", "is-resizing", "is-rotating", "is-resize-ready");
   };
 
   marker.addEventListener("pointerup", stopInteraction);
@@ -387,7 +423,18 @@ const getMyomaRows = (type = "myoma") => [...annotationLists[type].querySelector
 const getMyomaMarkers = (myomaId) =>
   document.querySelectorAll(`.myoma-marker[data-myoma-id="${myomaId}"]`);
 
-const getMyomaColor = (myomaNumber) => myomaColors[(myomaNumber - 1) % myomaColors.length];
+const getAnnotationGlobalIndex = (annotationNumber, type = "myoma") =>
+  type === "formation" ? getMyomaRows("myoma").length + annotationNumber : annotationNumber;
+
+const getMyomaColor = (annotationNumber, type = "myoma") => myomaColors[(getAnnotationGlobalIndex(annotationNumber, type) - 1) % myomaColors.length];
+
+const getUsedAnnotationColors = () =>
+  [...document.querySelectorAll("#myoma-list .color-input, #formation-list .color-input")].map((input) => input.value.toLowerCase());
+
+const getNextAnnotationColor = (annotationNumber, type = "myoma") => {
+  const usedColors = new Set(getUsedAnnotationColors());
+  return myomaColors.find((color) => !usedColors.has(color.toLowerCase())) || getMyomaColor(annotationNumber, type);
+};
 
 const applyAnnotationColor = (myomaId, color, type = "myoma") => {
   getMyomaMarkers(myomaId).forEach((marker) => {
@@ -402,7 +449,7 @@ const applyAnnotationColor = (myomaId, color, type = "myoma") => {
 const setMyomaColor = (myomaId, myomaNumber, type = "myoma") => {
   const row = annotationLists[type].querySelector(`tr[data-myoma-id="${myomaId}"]`);
   const colorInput = row?.querySelector(".color-input");
-  const color = colorInput?.value || getMyomaColor(myomaNumber);
+  const color = colorInput?.value || getMyomaColor(myomaNumber, type);
 
   if (colorInput && !colorInput.value) {
     colorInput.value = color;
@@ -412,14 +459,21 @@ const setMyomaColor = (myomaId, myomaNumber, type = "myoma") => {
 };
 
 const setMarkerLabel = (marker, myomaNumber, category) => {
-  marker.textContent = category;
   marker.dataset.annotationNumber = myomaNumber;
+  marker.innerHTML = "";
+  const labelElement = document.createElement("span");
+  labelElement.className = "marker-label";
+  labelElement.textContent = category;
+  const rotateHandle = document.createElement("span");
+  rotateHandle.className = "marker-rotate-handle";
+  rotateHandle.setAttribute("aria-hidden", "true");
+  marker.append(labelElement, rotateHandle);
 
   const markerLabel = category ? `${category} ${myomaNumber}` : `Позначка ${myomaNumber}`;
 
   marker.setAttribute(
     "aria-label",
-    `${markerLabel}. Перетягніть позначку по зображенню або потягніть за край, щоб змінити розмір і форму.`,
+    `${markerLabel}. Перетягніть позначку, потягніть за край для розміру або за ручку над позначкою для кута нахилу.`,
   );
 };
 
@@ -432,6 +486,7 @@ const createMarker = (myomaId, myomaNumber, category, surface, type = "myoma", s
   marker.dataset.annotationType = type;
   marker.dataset.surface = surface.dataset.markerSurface;
   setMarkerLabel(marker, myomaNumber, category);
+  updateMarkerAngle(marker, 0);
 
   const startPosition = markerStartPositions[marker.dataset.surface];
   updateMarkerPosition(marker, startPosition.x, startPosition.y);
@@ -494,7 +549,7 @@ const createColorControl = (annotationId, annotationNumber, type) => {
   const input = document.createElement("input");
   input.className = "color-input";
   input.type = "color";
-  input.value = getMyomaColor(annotationNumber);
+  input.value = getNextAnnotationColor(annotationNumber, type);
   input.setAttribute("aria-label", `Колір для ${annotationConfigs[type].numberLabel} ${annotationNumber}`);
 
   input.addEventListener("input", () => applyAnnotationColor(annotationId, input.value, type));
@@ -598,6 +653,19 @@ const addAnnotation = (type = "myoma") => {
   locationStack.append(wallSelect, locationInput);
   locationCell.append(locationStack);
 
+  const angleCell = document.createElement("td");
+  const angleInput = document.createElement("input");
+  angleInput.className = "report-input annotation-angle-input";
+  angleInput.type = "number";
+  angleInput.inputMode = "decimal";
+  angleInput.min = "0";
+  angleInput.max = "359";
+  angleInput.step = "5";
+  angleInput.value = "0";
+  angleInput.setAttribute("aria-label", `Кут нахилу для ${config.numberLabel} ${annotationNumber}`);
+  angleInput.addEventListener("input", () => getMyomaMarkers(annotationId).forEach((marker) => updateMarkerAngle(marker, angleInput.value)));
+  angleCell.append(angleInput);
+
   const colorCell = document.createElement("td");
   colorCell.append(createColorControl(annotationId, annotationNumber, type));
 
@@ -608,7 +676,7 @@ const addAnnotation = (type = "myoma") => {
   row.append(numberCell);
   row.append(categoryCell);
   row.append(sizeCell, locationCell);
-  row.append(colorCell, actionCell);
+  row.append(angleCell, colorCell, actionCell);
   annotationLists[type].append(row);
 
   markerSurfaces.forEach((surface) => createMarker(annotationId, annotationNumber, category, surface, type, initialShape));
@@ -649,38 +717,40 @@ const getAnnotationPreviewItems = (type) => {
     const size = [...row.querySelectorAll(".annotation-size-input")].map((input) => input.value.trim()).filter(Boolean).join("×");
     const wall = row.querySelector(".annotation-wall-select")?.value.trim() || "—";
     const location = row.querySelector(".annotation-location-input")?.value.trim() || "—";
-    const color = row.querySelector(".color-input")?.value || getMyomaColor(number);
+    const color = row.querySelector(".color-input")?.value || getMyomaColor(number, type);
     return { number, label, size, wall, location, color, type };
   });
 };
 
+const getSurfaceDataUrl = (surfaceName) => renderSurfaceToCanvas(surfaceName)?.toDataURL("image/png") || "";
+
 const renderReportPreview = (lines) => {
   if (!reportPreview) return;
 
-  const patientName = getValue("#patient-name") || "Пацієнтка";
-  const uterusPosition = getValue("#uterus-position") || "—";
-  const uterusSize = getDimensionValue("#uterus-size-length", "#uterus-size-ap", "#uterus-size-width") || "—";
-  const endometriumSize = getValue("#endometrium-size") || "—";
-  const previewImage = detailImage?.getAttribute("src") || "uterus.png";
+  const patientName = getValue("#patient-name");
+  const uterusPosition = getValue("#uterus-position");
+  const uterusSize = getDimensionValue("#uterus-size-length", "#uterus-size-ap", "#uterus-size-width");
+  const endometriumSize = getValue("#endometrium-size");
+  const previewImages = [getSurfaceDataUrl("selected"), getSurfaceDataUrl("reference")].filter(Boolean);
   const lesions = [...getAnnotationPreviewItems("myoma"), ...getAnnotationPreviewItems("formation")];
   const lesionHtml = lesions.map((item) => `
     <div class="report-preview-lesion">
       <div class="report-preview-lesion-title"><span class="report-preview-dot" style="--myoma-color:${escapeHtml(item.color)}"></span>${escapeHtml(item.type === "myoma" ? `Міома ${item.number}:` : `Утвір ${item.number}:`)}</div>
-      <p>${escapeHtml(item.size || "—")} мм</p>
-      <p><strong>${escapeHtml(item.label)}</strong></p>
-      <p>Стінка: ${escapeHtml(item.wall)}</p>
-      <p>Локалізація/опис: ${escapeHtml(item.location)}</p>
+      ${item.size ? `<p>${escapeHtml(item.size)} мм</p>` : ""}
+      ${item.label ? `<p><strong>${escapeHtml(item.label)}</strong></p>` : ""}
+      ${item.wall !== "—" ? `<p>Стінка: ${escapeHtml(item.wall)}</p>` : ""}
+      ${item.location !== "—" ? `<p>Локалізація/опис: ${escapeHtml(item.location)}</p>` : ""}
     </div>`).join("");
 
   reportPreview.innerHTML = `
     <div class="report-preview-image">
       <h3>МРТ матки — звіт</h3>
-      <img src="${escapeHtml(previewImage)}" alt="Обране положення матки" />
+      <div class="report-preview-images">${previewImages.map((src, index) => `<img src="${escapeHtml(src)}" alt="Зображення матки з позначками ${index + 1}" />`).join("")}</div>
     </div>
     <div class="report-preview-text">
-      <p><strong>${escapeHtml(patientName)}</strong></p>
-      <p><strong>Матка:</strong><br>${escapeHtml(uterusPosition)}<br>${escapeHtml(uterusSize)} мм</p>
-      <p><strong>Ендометрій:</strong> ${escapeHtml(endometriumSize)} мм</p>
+      ${patientName ? `<p><strong>${escapeHtml(patientName)}</strong></p>` : ""}
+      ${(uterusPosition || uterusSize) ? `<p><strong>Матка:</strong>${uterusPosition ? `<br>${escapeHtml(uterusPosition)}` : ""}${uterusSize ? `<br>${escapeHtml(uterusSize)} мм` : ""}</p>` : ""}
+      ${endometriumSize ? `<p><strong>Ендометрій:</strong> ${escapeHtml(endometriumSize)} мм</p>` : ""}
       ${lesionHtml || `<p class="report-preview-section"><strong>Ураження:</strong> —</p>`}
       <div class="report-preview-section">${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div>
     </div>`;
@@ -770,5 +840,44 @@ addFormationButton.addEventListener("click", () => addAnnotation("formation"));
 downloadImageButtons.forEach((button) => {
   button.addEventListener("click", () => downloadSurfaceImage(button.dataset.downloadSurface));
 });
+const downloadReportImage = () => {
+  generateReport();
+  const canvas = document.createElement("canvas");
+  canvas.width = 1400;
+  canvas.height = 950;
+  const context = canvas.getContext("2d");
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "#0f172a";
+  context.font = "700 34px sans-serif";
+  context.fillText("МРТ матки — звіт", 40, 55);
+  [renderSurfaceToCanvas("selected"), renderSurfaceToCanvas("reference")].filter(Boolean).forEach((source, index) => {
+    const x = 40 + index * 360;
+    context.drawImage(source, x, 90, 320, 320);
+  });
+  context.font = "24px sans-serif";
+  const textLines = (reportOutput.value || "").split("\n");
+  let y = 100;
+  textLines.forEach((line) => {
+    const words = line.split(" ");
+    let current = "";
+    words.forEach((word) => {
+      const next = current ? `${current} ${word}` : word;
+      if (context.measureText(next).width > 600) {
+        context.fillText(current, 760, y);
+        y += 34;
+        current = word;
+      } else current = next;
+    });
+    if (current) context.fillText(current, 760, y);
+    y += 40;
+  });
+  const link = document.createElement("a");
+  link.download = `uterus-report-${getDownloadDatePart()}.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+};
+
 reportButton?.addEventListener("click", generateReport);
+downloadReportButton?.addEventListener("click", downloadReportImage);
 window.addEventListener("popstate", renderFromUrl);
