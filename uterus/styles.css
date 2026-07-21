@@ -673,3 +673,66 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+.myoma-marker {
+  transform: translate(-50%, -50%) rotate(var(--marker-angle, 0deg));
+}
+
+.myoma-marker.is-dragging {
+  transform: translate(-50%, -50%) rotate(var(--marker-angle, 0deg)) scale(1.06);
+}
+
+.myoma-marker.is-rotating,
+.myoma-marker:has(.marker-rotate-handle:hover) {
+  cursor: crosshair;
+}
+
+.marker-label {
+  pointer-events: none;
+}
+
+.marker-rotate-handle {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  cursor: crosshair;
+}
+
+.marker-rotate-handle::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  width: 2px;
+  height: 10px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.annotation-angle-input {
+  min-width: 82px;
+  text-align: center;
+}
+
+.report-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.report-preview-images {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.report-preview-image img {
+  max-height: 300px;
+}
