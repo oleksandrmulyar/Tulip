@@ -63,6 +63,8 @@ const annotationLists = Object.fromEntries(
 );
 const markerSurfaces = document.querySelectorAll("[data-marker-surface]");
 const downloadImageButtons = document.querySelectorAll("[data-download-surface]");
+const reportButton = document.querySelector("#generate-report");
+const reportOutput = document.querySelector("#report-output");
 
 const annotationCounters = { myoma: 0, formation: 0 };
 
@@ -115,6 +117,8 @@ const renderDetail = (fileName) => {
   detailImage.src = fileName;
   detailImage.alt = getCaptionText(fileName);
   document.title = `${getCaptionText(fileName)} — Вибір положення матки`;
+  const positionInput = document.querySelector("#uterus-position");
+  if (positionInput) positionInput.value = getCaptionText(fileName);
 };
 
 
@@ -552,6 +556,22 @@ const addAnnotation = (type = "myoma") => {
   categoryCell.append(createCategoryControl(annotationId, annotationNumber, initialText, type));
 
 
+  const sizeCell = document.createElement("td");
+  const sizeInput = document.createElement("input");
+  sizeInput.className = "report-input annotation-size-input";
+  sizeInput.type = "text";
+  sizeInput.placeholder = "наприклад 18 × 14 × 12";
+  sizeInput.setAttribute("aria-label", `Розмір для ${config.numberLabel} ${annotationNumber}`);
+  sizeCell.append(sizeInput);
+
+  const locationCell = document.createElement("td");
+  const locationInput = document.createElement("input");
+  locationInput.className = "report-input annotation-location-input";
+  locationInput.type = "text";
+  locationInput.placeholder = type === "myoma" ? "інтрамурально, субмукозно, задня стінка..." : "локалізація або опис";
+  locationInput.setAttribute("aria-label", `Локалізація або опис для ${config.numberLabel} ${annotationNumber}`);
+  locationCell.append(locationInput);
+
   const colorCell = document.createElement("td");
   colorCell.append(createColorControl(annotationId, annotationNumber, type));
 
@@ -561,11 +581,76 @@ const addAnnotation = (type = "myoma") => {
 
   row.append(numberCell);
   row.append(categoryCell);
+  row.append(sizeCell, locationCell);
   row.append(colorCell, actionCell);
   annotationLists[type].append(row);
 
   markerSurfaces.forEach((surface) => createMarker(annotationId, annotationNumber, category, surface, type, initialShape));
   setMyomaColor(annotationId, annotationNumber, type);
+};
+
+const getValue = (selector) => document.querySelector(selector)?.value.trim() || "";
+
+const getCheckedValues = (name) =>
+  [...document.querySelectorAll(`input[name="${name}"]:checked`)].map((input) => input.value);
+
+const buildAnnotationReportLines = (type, title) => {
+  const config = annotationConfigs[type];
+  const lines = getMyomaRows(type).map((row, index) => {
+    const number = index + 1;
+    const label = formatAnnotationLabel(getRowValue(row, type), type);
+    const size = row.querySelector(".annotation-size-input")?.value.trim();
+    const location = row.querySelector(".annotation-location-input")?.value.trim();
+    const parts = [`${number}) ${label || config.numberLabel}`];
+
+    if (size) parts.push(`розмір ${size} мм`);
+    if (location) parts.push(location);
+
+    return parts.join("; ") + ".";
+  });
+
+  return lines.length ? [`${title}:`, ...lines] : [];
+};
+
+const buildOvaryLine = (sideLabel, key) => {
+  const size = getValue(`#${key}-ovary-size`);
+  const status = getValue(`#${key}-ovary-status`);
+  const hasEndometriosis = document.querySelector(`#${key}-endometriosis`)?.checked;
+  const locations = getCheckedValues(`${key}-endo-location`);
+  const notes = getValue(`#${key}-ovary-notes`);
+  const parts = [];
+
+  if (size) parts.push(`розмір ${size} мм`);
+  if (status) parts.push(status.toLowerCase());
+  if (hasEndometriosis || locations.length) {
+    parts.push(`ознаки ендометріозу${locations.length ? `: ${locations.join(", ")}` : ""}`);
+  }
+  if (notes) parts.push(notes);
+
+  return parts.length ? `${sideLabel} яєчник: ${parts.join("; ")}.` : "";
+};
+
+const generateReport = () => {
+  const lines = [];
+  const patientName = getValue("#patient-name");
+  const uterusPosition = getValue("#uterus-position");
+  const uterusSize = getValue("#uterus-size");
+  const endometriumSize = getValue("#endometrium-size");
+  const additionalNotes = getValue("#additional-notes");
+
+  if (patientName) lines.push(`ПІБ: ${patientName}.`);
+  if (uterusPosition) lines.push(`Матка у положенні: ${uterusPosition}.`);
+  if (uterusSize) lines.push(`Розміри матки: ${uterusSize} мм.`);
+  if (endometriumSize) lines.push(`Ендометрій: ${endometriumSize} мм.`);
+  if (additionalNotes) lines.push(`Додатково: ${additionalNotes}.`);
+
+  lines.push(...buildAnnotationReportLines("myoma", "Міоми / FIGO"));
+  lines.push(...buildAnnotationReportLines("formation", "Інші ураження"));
+
+  const ovaryLines = [buildOvaryLine("Правий", "right"), buildOvaryLine("Лівий", "left")].filter(Boolean);
+  if (ovaryLines.length) lines.push("Яєчники:", ...ovaryLines);
+
+  reportOutput.value = lines.join("\n") || "Дані для звіту не заповнені.";
 };
 
 renderGallery();
@@ -576,4 +661,5 @@ addFormationButton.addEventListener("click", () => addAnnotation("formation"));
 downloadImageButtons.forEach((button) => {
   button.addEventListener("click", () => downloadSurfaceImage(button.dataset.downloadSurface));
 });
+reportButton?.addEventListener("click", generateReport);
 window.addEventListener("popstate", renderFromUrl);
