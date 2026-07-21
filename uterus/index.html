@@ -16,6 +16,29 @@
       <section id="detail-view" class="view detail" hidden>
         <a class="back-link" href="./" aria-label="Повернутися до списку зображень">← Назад до вибору</a>
         <div class="detail-workspace">
+          <section class="report-panel" aria-label="Дані пацієнтки та матки">
+            <div class="myoma-panel-header">
+              <h2>Дані для звіту</h2>
+            </div>
+            <div class="report-grid">
+              <label class="field-label">ПІБ
+                <input id="patient-name" class="report-input" type="text" placeholder="ПІБ пацієнтки" />
+              </label>
+              <label class="field-label">Положення матки
+                <input id="uterus-position" class="report-input" type="text" readonly />
+              </label>
+              <label class="field-label">Розміри матки, мм
+                <input id="uterus-size" class="report-input" type="text" placeholder="довжина × передньо-задній × ширина" />
+              </label>
+              <label class="field-label">Ендометрій, мм
+                <input id="endometrium-size" class="report-input" type="text" placeholder="товщина М-ехо" />
+              </label>
+              <label class="field-label report-grid-wide">Додатково важливе
+                <textarea id="additional-notes" class="report-textarea" rows="3" placeholder="Аденоміоз, деформація порожнини, рідина, шийка матки тощо"></textarea>
+              </label>
+            </div>
+          </section>
+
           <div class="detail-layout" aria-label="Відкрите зображення та еталонне зображення матки">
             <figure class="detail-card">
               <div class="image-stage" data-marker-surface="selected">
@@ -37,7 +60,7 @@
 
           <section class="myoma-panel" aria-label="Міоми">
             <div class="myoma-panel-header">
-              <h2>Міоми</h2>
+              <h2>Міоми / FIGO</h2>
               <button class="add-myoma-button" type="button" id="add-myoma" aria-label="Додати міому">+</button>
             </div>
 
@@ -45,8 +68,10 @@
               <table class="myoma-table">
                 <thead>
                   <tr>
-                    <th scope="col">№ утворення</th>
-                    <th scope="col">Категорія FIGO</th>
+                    <th scope="col">№</th>
+                    <th scope="col">FIGO</th>
+                    <th scope="col">Розмір, мм</th>
+                    <th scope="col">Локалізація / ураження</th>
                     <th scope="col">Колір</th>
                     <th scope="col">Дії</th>
                   </tr>
@@ -58,7 +83,7 @@
 
           <section class="myoma-panel" aria-label="Утвори">
             <div class="myoma-panel-header">
-              <h2>Утвори</h2>
+              <h2>Інші ураження</h2>
               <button class="add-myoma-button" type="button" id="add-formation" aria-label="Додати утвір">+</button>
             </div>
 
@@ -66,8 +91,10 @@
               <table class="myoma-table">
                 <thead>
                   <tr>
-                    <th scope="col">№ утвору</th>
+                    <th scope="col">№</th>
                     <th scope="col">Назва</th>
+                    <th scope="col">Розмір, мм</th>
+                    <th scope="col">Локалізація / опис</th>
                     <th scope="col">Колір</th>
                     <th scope="col">Дії</th>
                   </tr>
@@ -77,6 +104,49 @@
             </div>
           </section>
 
+          <section class="myoma-panel" aria-label="Яєчники">
+            <div class="myoma-panel-header"><h2>Яєчники</h2></div>
+            <div class="ovary-grid">
+              <fieldset class="ovary-card" data-ovary="right">
+                <legend>Правий яєчник</legend>
+                <label class="field-label">Розмір, мм <input id="right-ovary-size" class="report-input" type="text" placeholder="довжина × ширина × товщина" /></label>
+                <label class="field-label">Оцінка
+                  <select id="right-ovary-status" class="report-input"><option value="">Не вказувати</option><option>Норма</option><option>Не норма</option><option>Не візуалізується</option></select>
+                </label>
+                <label class="checkbox-label"><input id="right-endometriosis" type="checkbox" /> Ознаки ендометріозу</label>
+                <div class="checkbox-group" aria-label="Типові локалізації праворуч">
+                  <label><input type="checkbox" name="right-endo-location" value="ендометріома" /> ендометріома</label>
+                  <label><input type="checkbox" name="right-endo-location" value="періоваріальні спайки" /> періоваріальні спайки</label>
+                  <label><input type="checkbox" name="right-endo-location" value="матково-крижова зв’язка" /> матково-крижова зв’язка</label>
+                  <label><input type="checkbox" name="right-endo-location" value="дугласів простір" /> дугласів простір</label>
+                </div>
+                <textarea id="right-ovary-notes" class="report-textarea" rows="2" placeholder="Опис вручну"></textarea>
+              </fieldset>
+              <fieldset class="ovary-card" data-ovary="left">
+                <legend>Лівий яєчник</legend>
+                <label class="field-label">Розмір, мм <input id="left-ovary-size" class="report-input" type="text" placeholder="довжина × ширина × товщина" /></label>
+                <label class="field-label">Оцінка
+                  <select id="left-ovary-status" class="report-input"><option value="">Не вказувати</option><option>Норма</option><option>Не норма</option><option>Не візуалізується</option></select>
+                </label>
+                <label class="checkbox-label"><input id="left-endometriosis" type="checkbox" /> Ознаки ендометріозу</label>
+                <div class="checkbox-group" aria-label="Типові локалізації ліворуч">
+                  <label><input type="checkbox" name="left-endo-location" value="ендометріома" /> ендометріома</label>
+                  <label><input type="checkbox" name="left-endo-location" value="періоваріальні спайки" /> періоваріальні спайки</label>
+                  <label><input type="checkbox" name="left-endo-location" value="матково-крижова зв’язка" /> матково-крижова зв’язка</label>
+                  <label><input type="checkbox" name="left-endo-location" value="дугласів простір" /> дугласів простір</label>
+                </div>
+                <textarea id="left-ovary-notes" class="report-textarea" rows="2" placeholder="Опис вручну"></textarea>
+              </fieldset>
+            </div>
+          </section>
+
+          <section class="report-panel" aria-label="Формування звіту">
+            <div class="myoma-panel-header">
+              <h2>Звіт</h2>
+              <button class="download-image-button" type="button" id="generate-report">Сформувати звіт</button>
+            </div>
+            <textarea id="report-output" class="report-output" rows="12" placeholder="Тут з’явиться сформований звіт"></textarea>
+          </section>
         </div>
       </section>
     </main>
