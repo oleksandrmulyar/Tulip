@@ -27,11 +27,15 @@
               <label class="field-label">Положення матки
                 <input id="uterus-position" class="report-input" type="text" readonly />
               </label>
-              <label class="field-label">Розміри матки, мм
-                <input id="uterus-size" class="report-input" type="text" placeholder="довжина × передньо-задній × ширина" />
-              </label>
+              <div class="field-label">Розміри матки, мм
+                <div class="dimension-row" aria-label="Розміри матки у міліметрах">
+                  <input id="uterus-size-length" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="довжина" aria-label="Довжина матки" />
+                  <input id="uterus-size-ap" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="передньо-задній" aria-label="Передньо-задній розмір матки" />
+                  <input id="uterus-size-width" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="ширина" aria-label="Ширина матки" />
+                </div>
+              </div>
               <label class="field-label">Ендометрій, мм
-                <input id="endometrium-size" class="report-input" type="text" placeholder="товщина М-ехо" />
+                <input id="endometrium-size" class="report-input" type="number" inputmode="decimal" placeholder="товщина ендометрію" />
               </label>
               <label class="field-label report-grid-wide">Додатково важливе
                 <textarea id="additional-notes" class="report-textarea" rows="3" placeholder="Аденоміоз, деформація порожнини, рідина, шийка матки тощо"></textarea>
@@ -70,8 +74,8 @@
                   <tr>
                     <th scope="col">№</th>
                     <th scope="col">FIGO</th>
-                    <th scope="col">Розмір, мм</th>
-                    <th scope="col">Локалізація / ураження</th>
+                    <th scope="col">Розміри, мм</th>
+                    <th scope="col">Стінка / локалізація</th>
                     <th scope="col">Колір</th>
                     <th scope="col">Дії</th>
                   </tr>
@@ -93,8 +97,8 @@
                   <tr>
                     <th scope="col">№</th>
                     <th scope="col">Назва</th>
-                    <th scope="col">Розмір, мм</th>
-                    <th scope="col">Локалізація / опис</th>
+                    <th scope="col">Розміри, мм</th>
+                    <th scope="col">Стінка / локалізація</th>
                     <th scope="col">Колір</th>
                     <th scope="col">Дії</th>
                   </tr>
@@ -109,33 +113,79 @@
             <div class="ovary-grid">
               <fieldset class="ovary-card" data-ovary="right">
                 <legend>Правий яєчник</legend>
-                <label class="field-label">Розмір, мм <input id="right-ovary-size" class="report-input" type="text" placeholder="довжина × ширина × товщина" /></label>
-                <label class="field-label">Оцінка
-                  <select id="right-ovary-status" class="report-input"><option value="">Не вказувати</option><option>Норма</option><option>Не норма</option><option>Не візуалізується</option></select>
-                </label>
-                <label class="checkbox-label"><input id="right-endometriosis" type="checkbox" /> Ознаки ендометріозу</label>
-                <div class="checkbox-group" aria-label="Типові локалізації праворуч">
-                  <label><input type="checkbox" name="right-endo-location" value="ендометріома" /> ендометріома</label>
-                  <label><input type="checkbox" name="right-endo-location" value="періоваріальні спайки" /> періоваріальні спайки</label>
-                  <label><input type="checkbox" name="right-endo-location" value="матково-крижова зв’язка" /> матково-крижова зв’язка</label>
-                  <label><input type="checkbox" name="right-endo-location" value="дугласів простір" /> дугласів простір</label>
+                <div class="field-label">Розміри, мм
+                  <div class="dimension-row" aria-label="Розміри правого яєчника у міліметрах">
+                    <input id="right-ovary-size-length" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="довжина" aria-label="Довжина правого яєчника" />
+                    <input id="right-ovary-size-width" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="ширина" aria-label="Ширина правого яєчника" />
+                    <input id="right-ovary-size-depth" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="товщина" aria-label="Товщина правого яєчника" />
+                  </div>
                 </div>
-                <textarea id="right-ovary-notes" class="report-textarea" rows="2" placeholder="Опис вручну"></textarea>
+                <label class="field-label">Розташування
+                  <select id="right-ovary-position" class="report-input"><option>розташований типово</option><option value="manual">вписати вручну</option><option>не візуалізується</option></select>
+                </label>
+                <label class="field-label right-ovary-position-manual" hidden>Розташування вручну
+                  <input id="right-ovary-position-text" class="report-input" type="text" placeholder="опишіть розташування" />
+                </label>
+                <label class="field-label">Структура
+                  <select id="right-ovary-structure" class="report-input"><option>однорідної структури</option><option>неоднорідної структури</option></select>
+                </label>
+                <label class="field-label">Вогнищеві зміни / включення
+                  <select id="right-ovary-finding" class="report-input"><option value="none">без вогнищевих змін та патологічних включень</option><option>кіста</option><option>ендометріоїдна кіста</option><option value="mass">утвір</option><option value="other">інше</option></select>
+                </label>
+                <div class="right-ovary-finding-details" hidden>
+                  <label class="field-label">Опис зміни
+                    <input id="right-ovary-finding-text" class="report-input" type="text" placeholder="тип, вміст, контури, сигнал тощо" />
+                  </label>
+                  <div class="field-label">Розміри зміни, мм
+                    <div class="dimension-row" aria-label="Розміри зміни правого яєчника">
+                      <input id="right-ovary-finding-size-length" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="довжина" />
+                      <input id="right-ovary-finding-size-width" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="ширина" />
+                      <input id="right-ovary-finding-size-depth" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="товщина" />
+                    </div>
+                  </div>
+                  <label class="field-label right-ovary-invasion" hidden>Інвазія
+                    <select id="right-ovary-invasion" class="report-input"><option>інвазії немає</option><option>є ознаки інвазії</option><option>інвазія не оцінюється</option></select>
+                  </label>
+                </div>
+                <textarea id="right-ovary-notes" class="report-textarea" rows="2" placeholder="Додатковий опис вручну"></textarea>
               </fieldset>
               <fieldset class="ovary-card" data-ovary="left">
                 <legend>Лівий яєчник</legend>
-                <label class="field-label">Розмір, мм <input id="left-ovary-size" class="report-input" type="text" placeholder="довжина × ширина × товщина" /></label>
-                <label class="field-label">Оцінка
-                  <select id="left-ovary-status" class="report-input"><option value="">Не вказувати</option><option>Норма</option><option>Не норма</option><option>Не візуалізується</option></select>
-                </label>
-                <label class="checkbox-label"><input id="left-endometriosis" type="checkbox" /> Ознаки ендометріозу</label>
-                <div class="checkbox-group" aria-label="Типові локалізації ліворуч">
-                  <label><input type="checkbox" name="left-endo-location" value="ендометріома" /> ендометріома</label>
-                  <label><input type="checkbox" name="left-endo-location" value="періоваріальні спайки" /> періоваріальні спайки</label>
-                  <label><input type="checkbox" name="left-endo-location" value="матково-крижова зв’язка" /> матково-крижова зв’язка</label>
-                  <label><input type="checkbox" name="left-endo-location" value="дугласів простір" /> дугласів простір</label>
+                <div class="field-label">Розміри, мм
+                  <div class="dimension-row" aria-label="Розміри лівого яєчника у міліметрах">
+                    <input id="left-ovary-size-length" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="довжина" aria-label="Довжина лівого яєчника" />
+                    <input id="left-ovary-size-width" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="ширина" aria-label="Ширина лівого яєчника" />
+                    <input id="left-ovary-size-depth" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="товщина" aria-label="Товщина лівого яєчника" />
+                  </div>
                 </div>
-                <textarea id="left-ovary-notes" class="report-textarea" rows="2" placeholder="Опис вручну"></textarea>
+                <label class="field-label">Розташування
+                  <select id="left-ovary-position" class="report-input"><option>розташований типово</option><option value="manual">вписати вручну</option><option>не візуалізується</option></select>
+                </label>
+                <label class="field-label left-ovary-position-manual" hidden>Розташування вручну
+                  <input id="left-ovary-position-text" class="report-input" type="text" placeholder="опишіть розташування" />
+                </label>
+                <label class="field-label">Структура
+                  <select id="left-ovary-structure" class="report-input"><option>однорідної структури</option><option>неоднорідної структури</option></select>
+                </label>
+                <label class="field-label">Вогнищеві зміни / включення
+                  <select id="left-ovary-finding" class="report-input"><option value="none">без вогнищевих змін та патологічних включень</option><option>кіста</option><option>ендометріоїдна кіста</option><option value="mass">утвір</option><option value="other">інше</option></select>
+                </label>
+                <div class="left-ovary-finding-details" hidden>
+                  <label class="field-label">Опис зміни
+                    <input id="left-ovary-finding-text" class="report-input" type="text" placeholder="тип, вміст, контури, сигнал тощо" />
+                  </label>
+                  <div class="field-label">Розміри зміни, мм
+                    <div class="dimension-row" aria-label="Розміри зміни лівого яєчника">
+                      <input id="left-ovary-finding-size-length" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="довжина" />
+                      <input id="left-ovary-finding-size-width" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="ширина" />
+                      <input id="left-ovary-finding-size-depth" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="товщина" />
+                    </div>
+                  </div>
+                  <label class="field-label left-ovary-invasion" hidden>Інвазія
+                    <select id="left-ovary-invasion" class="report-input"><option>інвазії немає</option><option>є ознаки інвазії</option><option>інвазія не оцінюється</option></select>
+                  </label>
+                </div>
+                <textarea id="left-ovary-notes" class="report-textarea" rows="2" placeholder="Додатковий опис вручну"></textarea>
               </fieldset>
             </div>
           </section>
@@ -145,6 +195,7 @@
               <h2>Звіт</h2>
               <button class="download-image-button" type="button" id="generate-report">Сформувати звіт</button>
             </div>
+            <div id="report-preview" class="report-preview" aria-label="Попередній перегляд звіту"></div>
             <textarea id="report-output" class="report-output" rows="12" placeholder="Тут з’явиться сформований звіт"></textarea>
           </section>
         </div>
