@@ -721,7 +721,7 @@ const getAnnotationPreviewItems = (type) => {
 
 const getSurfaceDataUrl = (surfaceName) => renderSurfaceToCanvas(surfaceName)?.toDataURL("image/png") || "";
 
-const renderReportPreview = (reportLines = []) => {
+const renderReportPreview = () => {
   if (!reportPreview) return;
 
   const patientName = getValue("#patient-name");
@@ -749,7 +749,6 @@ const renderReportPreview = (reportLines = []) => {
       ${patientName ? `<p><strong>${escapeHtml(patientName)}</strong></p>` : ""}
       ${(uterusPosition || uterusSize) ? `<p><strong>Матка:</strong>${uterusPosition ? `<br>${escapeHtml(uterusPosition)}` : ""}${uterusSize ? `<br>${escapeHtml(uterusSize)} мм` : ""}</p>` : ""}
       ${endometriumSize ? `<p><strong>Ендометрій:</strong> ${escapeHtml(endometriumSize)} мм</p>` : ""}
-      ${reportLines.length ? `<div class="report-preview-section"><p><strong>Текст звіту:</strong></p>${reportLines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div>` : ""}
       ${lesionHtml || `<p class="report-preview-section"><strong>Ураження:</strong> —</p>`}
       ${ovaryLines.length ? `<div class="report-preview-ovaries"><p><strong>Яєчники:</strong></p>${ovaryLines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div>` : ""}
     </div>`;
