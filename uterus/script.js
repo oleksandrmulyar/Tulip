@@ -721,7 +721,7 @@ const getAnnotationPreviewItems = (type) => {
 
 const getSurfaceDataUrl = (surfaceName) => renderSurfaceToCanvas(surfaceName)?.toDataURL("image/png") || "";
 
-const renderReportPreview = () => {
+const renderReportPreview = (reportLines = []) => {
   if (!reportPreview) return;
 
   const patientName = getValue("#patient-name");
@@ -749,6 +749,7 @@ const renderReportPreview = () => {
       ${patientName ? `<p><strong>${escapeHtml(patientName)}</strong></p>` : ""}
       ${(uterusPosition || uterusSize) ? `<p><strong>Матка:</strong>${uterusPosition ? `<br>${escapeHtml(uterusPosition)}` : ""}${uterusSize ? `<br>${escapeHtml(uterusSize)} мм` : ""}</p>` : ""}
       ${endometriumSize ? `<p><strong>Ендометрій:</strong> ${escapeHtml(endometriumSize)} мм</p>` : ""}
+      ${reportLines.length ? `<div class="report-preview-section"><p><strong>Текст звіту:</strong></p>${reportLines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div>` : ""}
       ${lesionHtml || `<p class="report-preview-section"><strong>Ураження:</strong> —</p>`}
       ${ovaryLines.length ? `<div class="report-preview-ovaries"><p><strong>Яєчники:</strong></p>${ovaryLines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div>` : ""}
     </div>`;
@@ -803,7 +804,7 @@ const buildOvaryLine = (sideLabel, key) => {
   return parts.length ? `${sideLabel} яєчник: ${parts.join("; ")}.` : "";
 };
 
-const generateReport = () => {
+const buildReportLines = () => {
   const lines = [];
   const patientName = getValue("#patient-name");
   const uterusPosition = getValue("#uterus-position");
@@ -823,7 +824,11 @@ const generateReport = () => {
   const ovaryLines = [buildOvaryLine("Правий", "right"), buildOvaryLine("Лівий", "left")].filter(Boolean);
   if (ovaryLines.length) lines.push("Яєчники:", ...ovaryLines);
 
-  renderReportPreview();
+  return lines;
+};
+
+const generateReport = () => {
+  renderReportPreview(buildReportLines());
 };
 
 setupConditionalFields("right");
