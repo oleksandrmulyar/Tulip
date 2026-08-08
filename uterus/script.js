@@ -849,40 +849,6 @@ addFormationButton.addEventListener("click", () => addAnnotation("formation"));
 downloadImageButtons.forEach((button) => {
   button.addEventListener("click", () => downloadSurfaceImage(button.dataset.downloadSurface));
 });
-const wrapCanvasText = (context, text, x, y, maxWidth, lineHeight) => {
-  const words = String(text).split(" ");
-  let current = "";
-
-  words.forEach((word) => {
-    const next = current ? `${current} ${word}` : word;
-    if (context.measureText(next).width > maxWidth && current) {
-      context.fillText(current, x, y);
-      y += lineHeight;
-      current = word;
-    } else {
-      current = next;
-    }
-  });
-
-  if (current) {
-    context.fillText(current, x, y);
-    y += lineHeight;
-  }
-
-  return y;
-};
-
-const drawCanvasReportSection = (context, title, lines, x, y, maxWidth, color = "#0f172a") => {
-  context.fillStyle = color;
-  context.font = "700 18px sans-serif";
-  y = wrapCanvasText(context, title, x, y, maxWidth, 24);
-  context.font = "16px sans-serif";
-  lines.forEach((line) => {
-    y = wrapCanvasText(context, line, x, y + 4, maxWidth, 23);
-  });
-  return y + 12;
-};
-
 const loadImage = (src) => new Promise((resolve, reject) => {
   const image = new Image();
   image.onload = () => resolve(image);
@@ -890,55 +856,73 @@ const loadImage = (src) => new Promise((resolve, reject) => {
   image.src = src;
 });
 
+const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = reject;
+  reader.readAsDataURL(blob);
+});
+
+const inlineReportStyles = (source, clone) => {
+  const sourceElements = [source, ...source.querySelectorAll("*")];
+  const cloneElements = [clone, ...clone.querySelectorAll("*")];
+
+  sourceElements.forEach((element, index) => {
+    const computedStyle = getComputedStyle(element);
+    const cloneElement = cloneElements[index];
+
+    for (const property of computedStyle) {
+      cloneElement.style.setProperty(property, computedStyle.getPropertyValue(property), computedStyle.getPropertyPriority(property));
+    }
+  });
+};
+
+const embedReportImages = async (clone) => {
+  await Promise.all([...clone.querySelectorAll("img")].map(async (image) => {
+    if (image.src.startsWith("data:")) return;
+
+    const response = await fetch(image.src);
+    if (!response.ok) throw new Error(`Не вдалося завантажити зображення звіту: ${image.src}`);
+    image.src = await blobToDataUrl(await response.blob());
+  }));
+};
+
+const renderReportPreviewToCanvas = async () => {
+  if (document.fonts?.ready) await document.fonts.ready;
+  await Promise.all([...reportPreview.querySelectorAll("img")].map((image) => image.decode?.().catch(() => undefined)));
+
+  const bounds = reportPreview.getBoundingClientRect();
+  const width = Math.ceil(bounds.width);
+  const height = Math.ceil(Math.max(bounds.height, reportPreview.scrollHeight));
+  const clone = reportPreview.cloneNode(true);
+  inlineReportStyles(reportPreview, clone);
+  clone.style.width = `${width}px`;
+  clone.style.height = `${height}px`;
+  clone.style.margin = "0";
+  clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+  await embedReportImages(clone);
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%">${new XMLSerializer().serializeToString(clone)}</foreignObject></svg>`;
+  const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+
+  try {
+    const image = await loadImage(svgUrl);
+    const pixelRatio = Math.max(2, window.devicePixelRatio || 1);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(width * pixelRatio);
+    canvas.height = Math.round(height * pixelRatio);
+    const context = canvas.getContext("2d");
+    context.scale(pixelRatio, pixelRatio);
+    context.drawImage(image, 0, 0, width, height);
+    return canvas;
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
+};
+
 const downloadReportImage = async () => {
   generateReport();
-  const anatomyImage = await loadImage(REPORT_ANATOMY_IMAGE);
-  const canvas = document.createElement("canvas");
-  canvas.width = 653;
-  canvas.height = 900;
-  const context = canvas.getContext("2d");
-  context.fillStyle = "#fff";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  context.fillStyle = "#00112d";
-  context.font = "700 22px sans-serif";
-  context.fillText("МРТ матки — звіт", 10, 50);
-
-  [renderSurfaceToCanvas("selected"), renderSurfaceToCanvas("reference")].filter(Boolean).forEach((source, index) => {
-    const y = 78 + index * 264;
-    context.strokeStyle = "#dddddd";
-    context.strokeRect(10, y, 260, 253);
-    context.drawImage(source, 20, y + 10, 240, 233);
-  });
-
-  const anatomyY = 606;
-  context.strokeStyle = "#dddddd";
-  context.strokeRect(10, anatomyY, 260, 253);
-  const anatomyBox = getImageDrawBox(anatomyImage, 240, 233);
-  context.drawImage(anatomyImage, 20 + anatomyBox.x, anatomyY + 10 + anatomyBox.y, anatomyBox.width, anatomyBox.height);
-
-  const x = 292;
-  const maxWidth = 340;
-  let y = 44;
-  const patientName = getValue("#patient-name");
-  if (patientName) y = drawCanvasReportSection(context, patientName, [], x, y, maxWidth);
-  const uterusPosition = getValue("#uterus-position");
-  const uterusSize = getDimensionValue("#uterus-size-length", "#uterus-size-ap", "#uterus-size-width");
-  const uterusLines = [uterusPosition, uterusSize ? `${uterusSize} мм` : ""].filter(Boolean);
-  if (uterusLines.length) y = drawCanvasReportSection(context, "Матка:", uterusLines, x, y, maxWidth);
-  const endometriumSize = getValue("#endometrium-size");
-  if (endometriumSize) y = drawCanvasReportSection(context, `Ендометрій: ${endometriumSize} мм`, [], x, y, maxWidth);
-  const myometriumSize = getValue("#myometrium-size");
-  if (myometriumSize) y = drawCanvasReportSection(context, `Міометрій: ${myometriumSize} мм`, [], x, y, maxWidth);
-
-  [...getAnnotationPreviewItems("myoma"), ...getAnnotationPreviewItems("formation")].forEach((item) => {
-    const title = item.type === "myoma" ? `● Міома ${item.number}:` : `● Утвір ${item.number}:`;
-    const lines = [item.size ? `${item.size} мм` : "", item.label, item.wall !== "—" ? `Стінка: ${item.wall}` : "", item.location !== "—" ? `Стінка: ${item.location}` : ""].filter(Boolean);
-    y = drawCanvasReportSection(context, title, lines, x, y, maxWidth, item.color);
-  });
-
-  const ovaryLines = [buildOvaryLine("Правий", "right"), buildOvaryLine("Лівий", "left")].filter(Boolean);
-  if (ovaryLines.length) y = drawCanvasReportSection(context, "Яєчники:", ovaryLines, x, y, maxWidth);
+  const canvas = await renderReportPreviewToCanvas();
 
   const link = document.createElement("a");
   link.download = `${getPatientFileBase()}_${getDownloadDatePart()}.png`;
