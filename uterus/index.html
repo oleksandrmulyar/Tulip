@@ -7,6 +7,35 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="reference-fab" aria-label="Довідкові матеріали">
+      <button
+        class="reference-fab-button"
+        id="figo-reference-button"
+        type="button"
+        aria-haspopup="dialog"
+        aria-controls="figo-reference-dialog"
+        aria-expanded="false"
+      >FIGO</button>
+    </div>
+
+    <div class="reference-dialog-backdrop" id="figo-reference-backdrop" hidden></div>
+    <section
+      class="reference-dialog"
+      id="figo-reference-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="figo-reference-title"
+      hidden
+    >
+      <header class="reference-dialog-header">
+        <h2 id="figo-reference-title">Типи міом за FIGO</h2>
+        <button class="reference-dialog-close" id="figo-reference-close" type="button" aria-label="Закрити">×</button>
+      </header>
+      <div class="reference-dialog-body">
+        <img src="FIGOtype.jpg" alt="Класифікація типів міом за FIGO" />
+      </div>
+    </section>
+
     <main class="app" aria-live="polite">
       <section id="gallery-view" class="view">
         <h1>Оберіть положення</h1>

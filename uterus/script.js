@@ -68,6 +68,32 @@ const downloadImageButtons = document.querySelectorAll("[data-download-surface]"
 const reportButton = document.querySelector("#generate-report");
 const downloadReportButton = document.querySelector("#download-report-image");
 const reportPreview = document.querySelector("#report-preview");
+const figoReferenceButton = document.querySelector("#figo-reference-button");
+const figoReferenceDialog = document.querySelector("#figo-reference-dialog");
+const figoReferenceBackdrop = document.querySelector("#figo-reference-backdrop");
+const figoReferenceClose = document.querySelector("#figo-reference-close");
+
+const setFigoReferenceOpen = (isOpen) => {
+  figoReferenceDialog.hidden = !isOpen;
+  figoReferenceBackdrop.hidden = !isOpen;
+  document.body.style.overflow = isOpen ? "hidden" : "";
+  figoReferenceButton.setAttribute("aria-expanded", String(isOpen));
+
+  if (isOpen) {
+    figoReferenceClose.focus();
+  } else {
+    figoReferenceButton.focus();
+  }
+};
+
+figoReferenceButton?.addEventListener("click", () => setFigoReferenceOpen(true));
+figoReferenceClose?.addEventListener("click", () => setFigoReferenceOpen(false));
+figoReferenceBackdrop?.addEventListener("click", () => setFigoReferenceOpen(false));
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !figoReferenceDialog?.hidden) {
+    setFigoReferenceOpen(false);
+  }
+});
 
 const annotationCounters = { myoma: 0, formation: 0 };
 
