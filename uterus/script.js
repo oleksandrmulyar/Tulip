@@ -897,7 +897,10 @@ const inlineReportStyles = (source, clone) => {
     const computedStyle = getComputedStyle(element);
     const cloneElement = cloneElements[index];
 
-    for (const property of computedStyle) {
+    // CSSStyleDeclaration is not iterable in older Safari versions. Accessing
+    // its indexed properties also works there and keeps report export usable.
+    for (let propertyIndex = 0; propertyIndex < computedStyle.length; propertyIndex += 1) {
+      const property = computedStyle[propertyIndex];
       cloneElement.style.setProperty(property, computedStyle.getPropertyValue(property), computedStyle.getPropertyPriority(property));
     }
   });
@@ -946,14 +949,43 @@ const renderReportPreviewToCanvas = async () => {
   }
 };
 
-const downloadReportImage = async () => {
-  generateReport();
-  const canvas = await renderReportPreviewToCanvas();
+const canvasToBlob = (canvas) => new Promise((resolve, reject) => {
+  canvas.toBlob((blob) => {
+    if (blob) resolve(blob);
+    else reject(new Error("Браузер не зміг створити PNG-файл звіту."));
+  }, "image/png");
+});
 
+const saveBlob = (blob, fileName) => {
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.download = `${getPatientFileBase()}_${getDownloadDatePart()}.png`;
-  link.href = canvas.toDataURL("image/png");
+  link.download = fileName;
+  link.href = url;
+  link.hidden = true;
+  document.body.append(link);
   link.click();
+  link.remove();
+  // WebKit needs the object URL to remain alive until it has processed the click.
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+const downloadReportImage = async () => {
+  const defaultLabel = downloadReportButton.textContent;
+  downloadReportButton.disabled = true;
+  downloadReportButton.textContent = "Готуємо файл…";
+
+  try {
+    generateReport();
+    const canvas = await renderReportPreviewToCanvas();
+    const blob = await canvasToBlob(canvas);
+    saveBlob(blob, `${getPatientFileBase()}_${getDownloadDatePart()}.png`);
+  } catch (error) {
+    console.error("Не вдалося скачати звіт:", error);
+    window.alert("Не вдалося створити фото звіту. Оновіть сторінку та спробуйте ще раз.");
+  } finally {
+    downloadReportButton.disabled = false;
+    downloadReportButton.textContent = defaultLabel;
+  }
 };
 
 reportButton?.addEventListener("click", generateReport);
