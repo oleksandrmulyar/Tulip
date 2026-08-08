@@ -5,6 +5,8 @@ const images = [
   "retroversio-retroflexio.png",
 ];
 
+const REPORT_ANATOMY_IMAGE = "anatomy.jpg";
+
 const defaultFigoText = "1";
 const annotationConfigs = {
   myoma: {
@@ -744,7 +746,10 @@ const renderReportPreview = () => {
   reportPreview.innerHTML = `
     <div class="report-preview-image">
       <h3>МРТ матки — звіт</h3>
-      <div class="report-preview-images">${previewImages.map((src, index) => `<img src="${escapeHtml(src)}" alt="Зображення матки з позначками ${index + 1}" />`).join("")}<img src="anatomy.jpg" alt="Анатомія матки" /></div>
+      <div class="report-preview-images">
+        ${previewImages.map((src, index) => `<img src="${escapeHtml(src)}" alt="Зображення матки з позначками ${index + 1}" />`).join("")}
+        <img src="${REPORT_ANATOMY_IMAGE}" alt="Анатомія матки" />
+      </div>
     </div>
     <div class="report-preview-text">
       ${patientName ? `<p><strong>${escapeHtml(patientName)}</strong></p>` : ""}
@@ -887,7 +892,7 @@ const loadImage = (src) => new Promise((resolve, reject) => {
 
 const downloadReportImage = async () => {
   generateReport();
-  const anatomyImage = await loadImage("anatomy.jpg");
+  const anatomyImage = await loadImage(REPORT_ANATOMY_IMAGE);
   const canvas = document.createElement("canvas");
   canvas.width = 653;
   canvas.height = 900;
