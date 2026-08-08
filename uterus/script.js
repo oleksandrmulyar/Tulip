@@ -728,6 +728,7 @@ const renderReportPreview = () => {
   const uterusPosition = getValue("#uterus-position");
   const uterusSize = getDimensionValue("#uterus-size-length", "#uterus-size-ap", "#uterus-size-width");
   const endometriumSize = getValue("#endometrium-size");
+  const myometriumSize = getValue("#myometrium-size");
   const previewImages = [getSurfaceDataUrl("selected"), getSurfaceDataUrl("reference")].filter(Boolean);
   const lesions = [...getAnnotationPreviewItems("myoma"), ...getAnnotationPreviewItems("formation")];
   const ovaryLines = [buildOvaryLine("Правий", "right"), buildOvaryLine("Лівий", "left")].filter(Boolean);
@@ -743,12 +744,13 @@ const renderReportPreview = () => {
   reportPreview.innerHTML = `
     <div class="report-preview-image">
       <h3>МРТ матки — звіт</h3>
-      <div class="report-preview-images">${previewImages.map((src, index) => `<img src="${escapeHtml(src)}" alt="Зображення матки з позначками ${index + 1}" />`).join("")}</div>
+      <div class="report-preview-images">${previewImages.map((src, index) => `<img src="${escapeHtml(src)}" alt="Зображення матки з позначками ${index + 1}" />`).join("")}<img src="anatomy.jpg" alt="Анатомія матки" /></div>
     </div>
     <div class="report-preview-text">
       ${patientName ? `<p><strong>${escapeHtml(patientName)}</strong></p>` : ""}
       ${(uterusPosition || uterusSize) ? `<p><strong>Матка:</strong>${uterusPosition ? `<br>${escapeHtml(uterusPosition)}` : ""}${uterusSize ? `<br>${escapeHtml(uterusSize)} мм` : ""}</p>` : ""}
       ${endometriumSize ? `<p><strong>Ендометрій:</strong> ${escapeHtml(endometriumSize)} мм</p>` : ""}
+      ${myometriumSize ? `<p><strong>Міометрій:</strong> ${escapeHtml(myometriumSize)} мм</p>` : ""}
       ${lesionHtml || `<p class="report-preview-section"><strong>Ураження:</strong> —</p>`}
       ${ovaryLines.length ? `<div class="report-preview-ovaries"><p><strong>Яєчники:</strong></p>${ovaryLines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div>` : ""}
     </div>`;
@@ -809,12 +811,14 @@ const buildReportLines = () => {
   const uterusPosition = getValue("#uterus-position");
   const uterusSize = getDimensionValue("#uterus-size-length", "#uterus-size-ap", "#uterus-size-width");
   const endometriumSize = getValue("#endometrium-size");
+  const myometriumSize = getValue("#myometrium-size");
   const additionalNotes = getValue("#additional-notes");
 
   if (patientName) lines.push(`ПІБ: ${patientName}.`);
   if (uterusPosition) lines.push(`Матка у положенні: ${uterusPosition}.`);
   if (uterusSize) lines.push(`Розміри матки: ${uterusSize} мм.`);
   if (endometriumSize) lines.push(`Ендометрій: ${endometriumSize} мм.`);
+  if (myometriumSize) lines.push(`Міометрій: ${myometriumSize} мм.`);
   if (additionalNotes) lines.push(`Додатково: ${additionalNotes}.`);
 
   lines.push(...buildAnnotationReportLines("myoma", "Міоми"));
@@ -874,11 +878,19 @@ const drawCanvasReportSection = (context, title, lines, x, y, maxWidth, color = 
   return y + 12;
 };
 
-const downloadReportImage = () => {
+const loadImage = (src) => new Promise((resolve, reject) => {
+  const image = new Image();
+  image.onload = () => resolve(image);
+  image.onerror = reject;
+  image.src = src;
+});
+
+const downloadReportImage = async () => {
   generateReport();
+  const anatomyImage = await loadImage("anatomy.jpg");
   const canvas = document.createElement("canvas");
   canvas.width = 653;
-  canvas.height = 643;
+  canvas.height = 900;
   const context = canvas.getContext("2d");
   context.fillStyle = "#fff";
   context.fillRect(0, 0, canvas.width, canvas.height);
@@ -894,6 +906,12 @@ const downloadReportImage = () => {
     context.drawImage(source, 20, y + 10, 240, 233);
   });
 
+  const anatomyY = 606;
+  context.strokeStyle = "#dddddd";
+  context.strokeRect(10, anatomyY, 260, 253);
+  const anatomyBox = getImageDrawBox(anatomyImage, 240, 233);
+  context.drawImage(anatomyImage, 20 + anatomyBox.x, anatomyY + 10 + anatomyBox.y, anatomyBox.width, anatomyBox.height);
+
   const x = 292;
   const maxWidth = 340;
   let y = 44;
@@ -905,6 +923,8 @@ const downloadReportImage = () => {
   if (uterusLines.length) y = drawCanvasReportSection(context, "Матка:", uterusLines, x, y, maxWidth);
   const endometriumSize = getValue("#endometrium-size");
   if (endometriumSize) y = drawCanvasReportSection(context, `Ендометрій: ${endometriumSize} мм`, [], x, y, maxWidth);
+  const myometriumSize = getValue("#myometrium-size");
+  if (myometriumSize) y = drawCanvasReportSection(context, `Міометрій: ${myometriumSize} мм`, [], x, y, maxWidth);
 
   [...getAnnotationPreviewItems("myoma"), ...getAnnotationPreviewItems("formation")].forEach((item) => {
     const title = item.type === "myoma" ? `● Міома ${item.number}:` : `● Утвір ${item.number}:`;
