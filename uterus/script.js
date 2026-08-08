@@ -927,7 +927,11 @@ const renderReportPreviewToCanvas = async () => {
   const imagesHeight = titleHeight + imageSizes.reduce((total, size) => total + size.height, 0) + Math.max(0, imageSizes.length - 1) * imageGap;
   const textHeight = Math.max(lineHeight, textLines.length * lineHeight);
   const height = Math.ceil((padding * 2) + Math.max(imagesHeight, textHeight));
-  const pixelRatio = Math.max(2, window.devicePixelRatio || 1);
+  // A high mobile devicePixelRatio can make this report canvas large enough
+  // for Safari/Chrome to silently fail while encoding it. Two physical pixels
+  // per CSS pixel keep the exported text sharp without exceeding mobile canvas
+  // memory limits.
+  const pixelRatio = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(width * pixelRatio);
   canvas.height = Math.round(height * pixelRatio);
@@ -957,6 +961,24 @@ const renderReportPreviewToCanvas = async () => {
 };
 
 const canvasToBlob = (canvas) => new Promise((resolve, reject) => {
+  if (typeof canvas.toBlob !== "function") {
+    try {
+      const [header, encodedData] = canvas.toDataURL("image/png").split(",");
+      const mimeType = header.match(/data:([^;]+)/)?.[1] || "image/png";
+      const binaryData = window.atob(encodedData);
+      const bytes = new Uint8Array(binaryData.length);
+
+      for (let index = 0; index < binaryData.length; index += 1) {
+        bytes[index] = binaryData.charCodeAt(index);
+      }
+
+      resolve(new Blob([bytes], { type: mimeType }));
+    } catch (error) {
+      reject(error);
+    }
+    return;
+  }
+
   canvas.toBlob((blob) => {
     if (blob) resolve(blob);
     else reject(new Error("Браузер не зміг створити PNG-файл звіту."));
@@ -973,7 +995,8 @@ const saveBlob = (blob, fileName) => {
   link.click();
   link.remove();
   // WebKit needs the object URL to remain alive until it has processed the click.
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // Slow mobile browsers may not start reading the object URL immediately.
+  window.setTimeout(() => URL.revokeObjectURL(url), 60000);
 };
 
 const downloadReportImage = async () => {
