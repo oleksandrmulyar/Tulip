@@ -882,71 +882,78 @@ const loadImage = (src) => new Promise((resolve, reject) => {
   image.src = src;
 });
 
-const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onload = () => resolve(reader.result);
-  reader.onerror = reject;
-  reader.readAsDataURL(blob);
-});
+const wrapCanvasText = (context, text, maxWidth) => {
+  const lines = [];
 
-const inlineReportStyles = (source, clone) => {
-  const sourceElements = [source, ...source.querySelectorAll("*")];
-  const cloneElements = [clone, ...clone.querySelectorAll("*")];
+  text.split(/\r?\n/).forEach((paragraph) => {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return;
 
-  sourceElements.forEach((element, index) => {
-    const computedStyle = getComputedStyle(element);
-    const cloneElement = cloneElements[index];
-
-    // CSSStyleDeclaration is not iterable in older Safari versions. Accessing
-    // its indexed properties also works there and keeps report export usable.
-    for (let propertyIndex = 0; propertyIndex < computedStyle.length; propertyIndex += 1) {
-      const property = computedStyle[propertyIndex];
-      cloneElement.style.setProperty(property, computedStyle.getPropertyValue(property), computedStyle.getPropertyPriority(property));
-    }
+    let line = words.shift();
+    words.forEach((word) => {
+      const candidate = `${line} ${word}`;
+      if (context.measureText(candidate).width <= maxWidth) line = candidate;
+      else {
+        lines.push(line);
+        line = word;
+      }
+    });
+    lines.push(line);
   });
-};
 
-const embedReportImages = async (clone) => {
-  await Promise.all([...clone.querySelectorAll("img")].map(async (image) => {
-    if (image.src.startsWith("data:")) return;
-
-    const response = await fetch(image.src);
-    if (!response.ok) throw new Error(`Не вдалося завантажити зображення звіту: ${image.src}`);
-    image.src = await blobToDataUrl(await response.blob());
-  }));
+  return lines;
 };
 
 const renderReportPreviewToCanvas = async () => {
   if (document.fonts?.ready) await document.fonts.ready;
-  await Promise.all([...reportPreview.querySelectorAll("img")].map((image) => image.decode?.().catch(() => undefined)));
+  const images = await Promise.all([...reportPreview.querySelectorAll("img")].map((image) => loadImage(image.currentSrc || image.src)));
+  const reportText = reportPreview.querySelector(".report-preview-text")?.innerText.trim() || "";
+  const width = 1400;
+  const padding = 48;
+  const columnGap = 48;
+  const imageWidth = 500;
+  const textWidth = width - (padding * 2) - columnGap - imageWidth;
+  const lineHeight = 31;
+  const imageGap = 20;
+  const titleHeight = 64;
+  const measuringCanvas = document.createElement("canvas");
+  const measuringContext = measuringCanvas.getContext("2d");
+  measuringContext.font = "24px Arial, sans-serif";
+  const textLines = wrapCanvasText(measuringContext, reportText, textWidth);
+  const imageSizes = images.map((image) => {
+    const scale = Math.min(imageWidth / image.naturalWidth, 340 / image.naturalHeight);
+    return { width: image.naturalWidth * scale, height: image.naturalHeight * scale };
+  });
+  const imagesHeight = titleHeight + imageSizes.reduce((total, size) => total + size.height, 0) + Math.max(0, imageSizes.length - 1) * imageGap;
+  const textHeight = Math.max(lineHeight, textLines.length * lineHeight);
+  const height = Math.ceil((padding * 2) + Math.max(imagesHeight, textHeight));
+  const pixelRatio = Math.max(2, window.devicePixelRatio || 1);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(width * pixelRatio);
+  canvas.height = Math.round(height * pixelRatio);
+  const context = canvas.getContext("2d");
+  context.scale(pixelRatio, pixelRatio);
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, width, height);
+  context.fillStyle = "#172033";
+  context.font = "700 32px Arial, sans-serif";
+  context.fillText("МРТ матки — звіт", padding, padding + 32);
 
-  const bounds = reportPreview.getBoundingClientRect();
-  const width = Math.ceil(bounds.width);
-  const height = Math.ceil(Math.max(bounds.height, reportPreview.scrollHeight));
-  const clone = reportPreview.cloneNode(true);
-  inlineReportStyles(reportPreview, clone);
-  clone.style.width = `${width}px`;
-  clone.style.height = `${height}px`;
-  clone.style.margin = "0";
-  clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-  await embedReportImages(clone);
+  let imageY = padding + titleHeight;
+  images.forEach((image, index) => {
+    const size = imageSizes[index];
+    context.drawImage(image, padding, imageY, size.width, size.height);
+    imageY += size.height + imageGap;
+  });
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%">${new XMLSerializer().serializeToString(clone)}</foreignObject></svg>`;
-  const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+  context.font = "24px Arial, sans-serif";
+  let textY = padding + 24;
+  textLines.forEach((line) => {
+    context.fillText(line, padding + imageWidth + columnGap, textY);
+    textY += lineHeight;
+  });
 
-  try {
-    const image = await loadImage(svgUrl);
-    const pixelRatio = Math.max(2, window.devicePixelRatio || 1);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(width * pixelRatio);
-    canvas.height = Math.round(height * pixelRatio);
-    const context = canvas.getContext("2d");
-    context.scale(pixelRatio, pixelRatio);
-    context.drawImage(image, 0, 0, width, height);
-    return canvas;
-  } finally {
-    URL.revokeObjectURL(svgUrl);
-  }
+  return canvas;
 };
 
 const canvasToBlob = (canvas) => new Promise((resolve, reject) => {
