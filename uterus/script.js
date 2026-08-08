@@ -882,80 +882,66 @@ const loadImage = (src) => new Promise((resolve, reject) => {
   image.src = src;
 });
 
-const wrapCanvasText = (context, text, maxWidth) => {
-  const lines = [];
+const copyComputedStyles = (source, target) => {
+  const sourceElements = [source, ...source.querySelectorAll("*")];
+  const targetElements = [target, ...target.querySelectorAll("*")];
 
-  text.split(/\r?\n/).forEach((paragraph) => {
-    const words = paragraph.trim().split(/\s+/).filter(Boolean);
-    if (!words.length) return;
+  sourceElements.forEach((element, index) => {
+    const computedStyle = window.getComputedStyle(element);
+    const targetStyle = targetElements[index].style;
 
-    let line = words.shift();
-    words.forEach((word) => {
-      const candidate = `${line} ${word}`;
-      if (context.measureText(candidate).width <= maxWidth) line = candidate;
-      else {
-        lines.push(line);
-        line = word;
-      }
-    });
-    lines.push(line);
+    for (const property of computedStyle) {
+      targetStyle.setProperty(property, computedStyle.getPropertyValue(property), computedStyle.getPropertyPriority(property));
+    }
   });
+};
 
-  return lines;
+const replaceCloneImagesWithDataUrls = (source, clone) => {
+  const sourceImages = [...source.querySelectorAll("img")];
+  const cloneImages = [...clone.querySelectorAll("img")];
+
+  sourceImages.forEach((image, index) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    canvas.getContext("2d").drawImage(image, 0, 0);
+    cloneImages[index].src = canvas.toDataURL("image/png");
+  });
 };
 
 const renderReportPreviewToCanvas = async () => {
   if (document.fonts?.ready) await document.fonts.ready;
-  const images = await Promise.all([...reportPreview.querySelectorAll("img")].map((image) => loadImage(image.currentSrc || image.src)));
-  const reportText = reportPreview.querySelector(".report-preview-text")?.innerText.trim() || "";
-  const width = 1400;
-  const padding = 48;
-  const columnGap = 48;
-  const imageWidth = 500;
-  const textWidth = width - (padding * 2) - columnGap - imageWidth;
-  const lineHeight = 31;
-  const imageGap = 20;
-  const titleHeight = 64;
-  const measuringCanvas = document.createElement("canvas");
-  const measuringContext = measuringCanvas.getContext("2d");
-  measuringContext.font = "24px Arial, sans-serif";
-  const textLines = wrapCanvasText(measuringContext, reportText, textWidth);
-  const imageSizes = images.map((image) => {
-    const scale = Math.min(imageWidth / image.naturalWidth, 340 / image.naturalHeight);
-    return { width: image.naturalWidth * scale, height: image.naturalHeight * scale };
-  });
-  const imagesHeight = titleHeight + imageSizes.reduce((total, size) => total + size.height, 0) + Math.max(0, imageSizes.length - 1) * imageGap;
-  const textHeight = Math.max(lineHeight, textLines.length * lineHeight);
-  const height = Math.ceil((padding * 2) + Math.max(imagesHeight, textHeight));
-  // A high mobile devicePixelRatio can make this report canvas large enough
-  // for Safari/Chrome to silently fail while encoding it. Two physical pixels
-  // per CSS pixel keep the exported text sharp without exceeding mobile canvas
-  // memory limits.
+  await Promise.all([...reportPreview.querySelectorAll("img")].map((image) => (
+    image.complete && image.naturalWidth ? Promise.resolve() : loadImage(image.currentSrc || image.src)
+  )));
+
+  const bounds = reportPreview.getBoundingClientRect();
+  const width = Math.ceil(bounds.width);
+  const height = Math.ceil(bounds.height);
+  const clone = reportPreview.cloneNode(true);
+  copyComputedStyles(reportPreview, clone);
+  clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+  clone.style.width = `${width}px`;
+  clone.style.height = `${height}px`;
+  clone.style.margin = "0";
+  replaceCloneImagesWithDataUrls(reportPreview, clone);
+
+  const markup = new XMLSerializer().serializeToString(clone);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%">${markup}</foreignObject></svg>`;
+  const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
   const pixelRatio = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(width * pixelRatio);
   canvas.height = Math.round(height * pixelRatio);
   const context = canvas.getContext("2d");
   context.scale(pixelRatio, pixelRatio);
-  context.fillStyle = "#fff";
-  context.fillRect(0, 0, width, height);
-  context.fillStyle = "#172033";
-  context.font = "700 32px Arial, sans-serif";
-  context.fillText("МРТ матки — звіт", padding, padding + 32);
 
-  let imageY = padding + titleHeight;
-  images.forEach((image, index) => {
-    const size = imageSizes[index];
-    context.drawImage(image, padding, imageY, size.width, size.height);
-    imageY += size.height + imageGap;
-  });
-
-  context.font = "24px Arial, sans-serif";
-  let textY = padding + 24;
-  textLines.forEach((line) => {
-    context.fillText(line, padding + imageWidth + columnGap, textY);
-    textY += lineHeight;
-  });
+  try {
+    const reportImage = await loadImage(svgUrl);
+    context.drawImage(reportImage, 0, 0, width, height);
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
 
   return canvas;
 };
