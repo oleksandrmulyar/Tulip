@@ -34,10 +34,11 @@
     .choice:hover { transform:translateY(-5px); border-color:#d6a2b5; box-shadow:0 24px 60px rgba(35,50,41,.13); }
     .choice:focus-visible { outline:4px solid #f4a6c2; outline-offset:4px; }
     .tag { align-self:flex-start; padding:6px 10px; color:#8c3152; background:var(--pink-soft); border-radius:999px; font-size:.74rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
-    .choice h2 { margin:24px 0 8px; font-size:clamp(1.35rem,3vw,1.75rem); letter-spacing:-.025em; }
+    .choice h2 { position:relative; z-index:1; max-width:45%; margin:24px 0 8px; font-size:clamp(1.35rem,3vw,1.75rem); letter-spacing:-.025em; }
     .open { margin-top:auto; padding-top:28px; color:var(--pink); font-weight:750; }
-    .petal { position:absolute; width:130px; height:130px; right:-45px; bottom:-50px; background:linear-gradient(145deg,#ffe0eb,#fff7fa); border-radius:70% 30% 70% 30%; transform:rotate(18deg); }
-    @media (max-width:650px) { body{padding:18px}.login-card{padding:26px 20px}.hero{margin-bottom:28px}.choices{grid-template-columns:1fr}.choice{min-height:205px;padding:24px} }
+    .choice-image { position:absolute; top:24px; right:18px; width:52%; height:150px; object-fit:contain; mix-blend-mode:multiply; transition:transform .2s ease; }
+    .choice:hover .choice-image { transform:scale(1.03); }
+    @media (max-width:650px) { body{padding:18px}.login-card{padding:26px 20px}.hero{margin-bottom:28px}.choices{grid-template-columns:1fr}.choice{min-height:205px;padding:24px}.choice-image{top:18px;height:135px} }
   </style>
 </head>
 <body>
@@ -59,8 +60,8 @@
       <p class="session"><span id="currentUser"></span> · <button id="logoutButton" class="logout" type="button">Вийти</button></p>
     </header>
     <nav class="choices" aria-label="Розділи Tulip">
-      <a class="choice" href="Prostatae/"><span class="tag">PI-RADS 2.1</span><h2>Prostatae</h2><span class="open">Відкрити розділ →</span><span class="petal" aria-hidden="true"></span></a>
-      <a class="choice" href="uterus/"><span class="tag">Test</span><h2>Uterus</h2><span class="open">Відкрити розділ →</span><span class="petal" aria-hidden="true"></span></a>
+      <a class="choice" href="Prostatae/"><span class="tag">PI-RADS 2.1</span><h2>Prostatae</h2><img class="choice-image" src="prostatae-main.jpg" alt="" aria-hidden="true"><span class="open">Відкрити розділ →</span></a>
+      <a class="choice" href="uterus/"><span class="tag">Test</span><h2>Uterus</h2><img class="choice-image" src="uterus-main.jpg" alt="" aria-hidden="true"><span class="open">Відкрити розділ →</span></a>
     </nav>
   </main>
   <script>

@@ -35,7 +35,7 @@ body {
 .reference-fab {
   position: fixed;
   top: 30px;
-  left: 16px;
+  right: 16px;
   z-index: 1000;
 }
 
@@ -870,7 +870,7 @@ h1 {
 .home-tab {
   position: fixed;
   top: 30px;
-  right: 16px;
+  left: 16px;
   z-index: 1000;
   padding: 12px 16px;
   color: #fff;
