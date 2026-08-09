@@ -196,9 +196,15 @@
             </div>
           </section>
 
-          <section class="myoma-panel" aria-label="Яєчники">
-            <div class="myoma-panel-header"><h2>Яєчники</h2></div>
-            <div class="ovary-grid">
+          <section class="myoma-panel collapsible-panel" aria-label="Яєчники">
+            <div class="myoma-panel-header">
+              <h2>Яєчники</h2>
+              <button class="collapse-panel-button" type="button" aria-expanded="true" aria-controls="ovaries-panel-content">
+                <span class="collapse-panel-label">Згорнути</span>
+                <span class="collapse-panel-icon" aria-hidden="true">⌃</span>
+              </button>
+            </div>
+            <div class="ovary-grid" id="ovaries-panel-content">
               <fieldset class="ovary-card" data-ovary="right">
                 <legend>Правий яєчник</legend>
                 <div class="field-label">Розміри, мм
@@ -288,9 +294,15 @@
             </div>
           </section>
 
-          <section class="report-panel" aria-label="Органи малого таза">
-            <div class="myoma-panel-header"><h2>Органи малого таза</h2></div>
-            <div class="clinical-sections">
+          <section class="report-panel collapsible-panel" aria-label="Органи малого таза">
+            <div class="myoma-panel-header">
+              <h2>Органи малого таза</h2>
+              <button class="collapse-panel-button" type="button" aria-expanded="true" aria-controls="pelvic-organs-panel-content">
+                <span class="collapse-panel-label">Згорнути</span>
+                <span class="collapse-panel-icon" aria-hidden="true">⌃</span>
+              </button>
+            </div>
+            <div class="clinical-sections" id="pelvic-organs-panel-content">
               <fieldset class="clinical-card">
                 <legend>Шийка матки</legend>
                 <div class="field-label">Розміри, мм

@@ -565,6 +565,45 @@ h1 {
   box-shadow: var(--shadow);
 }
 
+.collapsible-panel > .myoma-panel-header {
+  margin-bottom: 0;
+}
+
+.collapsible-panel > .myoma-panel-header + :not([hidden]) {
+  margin-top: 10px;
+}
+
+.collapse-panel-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 750;
+  cursor: pointer;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 8px;
+}
+
+.collapse-panel-button:hover,
+.collapse-panel-button:focus-visible {
+  background: #fff;
+  border-color: #64748b;
+}
+
+.collapse-panel-button:focus-visible {
+  outline: 4px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.collapse-panel-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .report-grid,
 .ovary-grid {
   display: grid;
