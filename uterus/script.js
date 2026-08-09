@@ -73,6 +73,7 @@ const figoReferenceDialog = document.querySelector("#figo-reference-dialog");
 const figoReferenceBackdrop = document.querySelector("#figo-reference-backdrop");
 const figoReferenceClose = document.querySelector("#figo-reference-close");
 const endometriosisToggle = document.querySelector("#endometriosis-toggle");
+const endometriosisOpen = document.querySelector("#endometriosis-open");
 const endometriosisDialog = document.querySelector("#endometriosis-dialog");
 const endometriosisBackdrop = document.querySelector("#endometriosis-backdrop");
 const endometriosisClose = document.querySelector("#endometriosis-close");
@@ -98,13 +99,22 @@ const setEndometriosisOpen = (isOpen) => {
   endometriosisBackdrop.hidden = !isOpen;
   document.body.style.overflow = isOpen ? "hidden" : "";
   endometriosisToggle?.setAttribute("aria-expanded", String(isOpen));
-  if (isOpen) endometriosisClose?.focus();
+  endometriosisOpen?.setAttribute("aria-expanded", String(isOpen));
+  if (endometriosisOpen) {
+    endometriosisOpen.hidden = isOpen || !endometriosisToggle?.checked;
+  }
+  if (isOpen) {
+    endometriosisClose?.focus();
+  } else if (endometriosisToggle?.checked) {
+    endometriosisOpen?.focus();
+  }
 };
 
 endometriosisToggle?.addEventListener("change", () => {
   if (endometriosisToggle.checked) setEndometriosisOpen(true);
   else setEndometriosisOpen(false);
 });
+endometriosisOpen?.addEventListener("click", () => setEndometriosisOpen(true));
 endometriosisClose?.addEventListener("click", () => setEndometriosisOpen(false));
 endometriosisBackdrop?.addEventListener("click", () => setEndometriosisOpen(false));
 document.addEventListener("keydown", (event) => {
