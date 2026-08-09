@@ -798,7 +798,6 @@ const renderReportPreview = () => {
 
   reportPreview.innerHTML = `
     <div class="report-preview-image">
-      <h3>МРТ матки — звіт</h3>
       <div class="report-preview-images">
         ${previewImages.map((src, index) => `<img src="${escapeHtml(src)}" alt="Зображення матки з позначками ${index + 1}" />`).join("")}
         <img src="${REPORT_ANATOMY_IMAGE}" alt="Анатомія матки" />
