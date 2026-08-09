@@ -867,8 +867,12 @@ const getClinicalReportSections = () => {
       ["Піхва", "#endo-vagina"], ["Кишківник", "#endo-bowel"], ["Сечовий міхур", "#endo-bladder"],
       ["Сечоводи", "#endo-ureters"], ["Спайковий процес", "#endo-adhesions"],
     ];
-    const text = fields.map(([label, selector]) => `${label}: ${getValue(selector) || "ознак ураження не виявлено"}`).join("; ");
-    sections.push({ title: "Ендометріоз", text });
+    const text = fields
+      .map(([label, selector]) => [label, getValue(selector)])
+      .filter(([, value]) => value)
+      .map(([label, value]) => `${label}: ${value}`)
+      .join("; ");
+    if (text) sections.push({ title: "Ендометріоз", text });
   }
   return sections;
 };
