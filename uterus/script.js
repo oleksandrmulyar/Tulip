@@ -855,7 +855,7 @@ const buildOvaryLines = (sideLabel, key) => {
     if (findingValue !== "other") findingParts.push(findingValue === "mass" ? "утвір" : findingValue);
     if (findingText) findingParts.push(findingText);
     if (findingSize) findingParts.push(`розміри ${findingSize} мм`);
-    if (findingParts.length) findingLines.push(`${sideLabel} яєчник, утворення ${findingLines.length + 1}: ${findingParts.join(": ")}.`);
+    if (findingParts.length) findingLines.push(`Утворення ${findingLines.length + 1}: ${findingParts.join(": ")}.`);
   });
   if (notes) ovaryParts.push(notes);
 
