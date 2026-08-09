@@ -866,3 +866,21 @@ h1 {
 .report-preview-image img {
   max-height: 300px;
 }
+
+.home-tab {
+  position: fixed;
+  top: 30px;
+  right: 16px;
+  z-index: 1000;
+  padding: 12px 16px;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  background: #0f172a;
+  border-radius: 9999px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+.home-tab:hover { background: #27272a; }
+.home-tab:focus-visible { outline: 4px solid var(--ring); outline-offset: 3px; }
