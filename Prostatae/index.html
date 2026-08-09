@@ -25,27 +25,6 @@
 </head>
 <body>
 <a class="home-tab" href="../" aria-label="Повернутися на головну сторінку">← Головна</a>
-<main id="loginScreen" aria-labelledby="loginTitle">
-  <form id="loginForm" class="login-card" autocomplete="on">
-    <div class="login-brand" aria-hidden="true">🌷</div>
-    <p class="login-eyebrow">PI-RADS 2.1</p>
-    <h1 id="loginTitle">Вхід до Tulip</h1>
-
-    <label class="login-field" for="loginUsername">
-      <span>Логін</span>
-      <input id="loginUsername" name="username" type="text" placeholder="Ваш логін" autocomplete="username" required autofocus>
-    </label>
-
-    <label class="login-field" for="loginPassword">
-      <span>Пароль</span>
-      <input id="loginPassword" name="password" type="password" placeholder="Ваш пароль" autocomplete="current-password" required>
-    </label>
-
-    <button id="loginSubmit" class="login-submit" type="submit">Увійти</button>
-    <div id="loginError" role="alert" aria-live="polite"></div>
-  </form>
-</main>
-
 <div id="appRoot" style="display:none;">
 
 <!-- FORCE-VISIBLE INFO UI (self-contained) -->
@@ -1475,73 +1454,9 @@
 
 <script src="../assets_preserved/tulip.preserved.js"></script>
 <script>
-async function doLogin() {
-  const usernameInput = document.getElementById('loginUsername');
-  const passwordInput = document.getElementById('loginPassword');
-  const errorBox = document.getElementById('loginError');
-  const submitBtn = document.getElementById('loginSubmit');
-  const username = usernameInput.value.trim();
-  const password = passwordInput.value;
-
-  if (errorBox) errorBox.textContent = '';
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Входимо…';
-  }
-
-  try {
-    const res = await fetch('https://api.tulip-pirads.com/api/login', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ username, password })
-    });
-
-    const data = await res.json();
-
-    if (!data.ok) {
-      if (errorBox) errorBox.textContent = data.error || 'Помилка входу';
-      return;
-    }
-
-    await checkLogin();
-  } catch (err) {
-    if (errorBox) errorBox.textContent = 'Не вдалося підключитися до сервера';
-  } finally {
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Увійти';
-    }
-  }
-}
-
-document.getElementById('loginForm').addEventListener('submit', function(event) {
-  event.preventDefault();
-  doLogin();
-});
-
 function showLoggedOutScreen(message) {
-  const loginScreen = document.getElementById('loginScreen');
-  const appRoot = document.getElementById('appRoot');
-  const adminUsersBtn = document.getElementById('adminUsersBtn');
-  const passwordInput = document.getElementById('loginPassword');
-  const errorBox = document.getElementById('loginError');
-
-  document.body.classList.remove('drawer-open', 'history-open');
-
-  if (loginScreen) loginScreen.style.display = 'flex';
-  if (appRoot) appRoot.style.display = 'none';
-  if (adminUsersBtn) adminUsersBtn.style.display = 'none';
-  if (passwordInput) passwordInput.value = '';
-  if (errorBox) errorBox.textContent = message || '';
   setCurrentAdminUser({ ok: false });
-
-  setTimeout(function() {
-    const usernameInput = document.getElementById('loginUsername');
-    if (usernameInput) usernameInput.focus();
-  }, 0);
+  location.replace('../' + (message ? '?login=required' : ''));
 }
 
 async function logoutFromTulip() {
@@ -1581,17 +1496,13 @@ async function checkLogin() {
   setCurrentAdminUser(data);
 
   if (data.ok) {
-    document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = 'block';
 
         const canManageUsers = data.admin || data.role === 'director';
     document.getElementById('adminUsersBtn').style.display = canManageUsers ? 'inline-block' : 'none';
     setTimeout(showGroupFolderHint, 500);
   } else {
-    const canManageUsers = data.admin || data.role === 'director';
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('appRoot').style.display = 'none';
-    document.getElementById('adminUsersBtn').style.display = 'none';
+    showLoggedOutScreen('Увійдіть, щоб продовжити');
   }
 }
 
