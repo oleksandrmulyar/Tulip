@@ -768,6 +768,13 @@ const getAnnotationPreviewItems = (type) => {
 
 const getSurfaceDataUrl = (surfaceName) => renderSurfaceToCanvas(surfaceName)?.toDataURL("image/png") || "";
 
+const renderOvaryLine = (line) => {
+  const labelMatch = line.match(/^((?:Правий|Лівий) яєчник):(.*)$/u);
+  if (!labelMatch) return `<p>${escapeHtml(line)}</p>`;
+
+  return `<p><strong><em>${escapeHtml(labelMatch[1])}</em></strong>:${escapeHtml(labelMatch[2])}</p>`;
+};
+
 const renderReportPreview = () => {
   if (!reportPreview) return;
 
@@ -804,7 +811,7 @@ const renderReportPreview = () => {
       ${myometriumSize ? `<p><strong>Міометрій:</strong> ${escapeHtml(myometriumSize)} мм</p>` : ""}
       ${additionalNotes ? `<p><strong>Додатково:</strong> ${escapeHtml(additionalNotes)}</p>` : ""}
       ${lesionHtml}
-      ${ovaryLines.length ? `<div class="report-preview-ovaries"><p><strong>Яєчники:</strong></p>${ovaryLines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div>` : ""}
+      ${ovaryLines.length ? `<div class="report-preview-ovaries"><p><strong>Яєчники:</strong></p>${ovaryLines.map(renderOvaryLine).join("")}</div>` : ""}
     </div>`;
 };
 
