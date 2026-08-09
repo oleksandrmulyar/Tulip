@@ -69,7 +69,7 @@
               <label class="field-label">Міометрій, мм
                 <input id="myometrium-size" class="report-input" type="number" inputmode="decimal" placeholder="товщина міометрію" />
               </label>
-              <label class="field-label report-grid-wide">Додатково важливе
+              <label class="field-label report-grid-wide">Додатково
                 <textarea id="additional-notes" class="report-textarea" rows="3" placeholder="Аденоміоз, деформація порожнини, рідина, шийка матки тощо"></textarea>
               </label>
             </div>
@@ -161,25 +161,33 @@
                 <label class="field-label">Структура
                   <select id="right-ovary-structure" class="report-input"><option>однорідної структури</option><option>неоднорідної структури</option></select>
                 </label>
-                <label class="field-label">Вогнищеві зміни / включення
-                  <select id="right-ovary-finding" class="report-input"><option value="none">без вогнищевих змін та патологічних включень</option><option>кіста</option><option>ендометріоїдна кіста</option><option value="mass">утвір</option><option value="other">інше</option></select>
-                </label>
-                <div class="right-ovary-finding-details" hidden>
+                <div id="right-ovary-findings" class="ovary-findings">
+                  <div class="ovary-finding-entry">
+                    <label class="field-label">Вогнищева зміна / включення
+                      <select class="report-input ovary-finding"><option value="none">без вогнищевих змін та патологічних включень</option><option>кіста</option><option>ендометріоїдна кіста</option><option value="mass">утвір</option><option value="other">інше</option></select>
+                    </label>
+                    <div class="ovary-finding-details" hidden>
                   <label class="field-label">Опис зміни
-                    <input id="right-ovary-finding-text" class="report-input" type="text" placeholder="тип, вміст, контури, сигнал тощо" />
+                    <input class="report-input ovary-finding-text" type="text" placeholder="назва, тип, вміст, контури, сигнал тощо" />
                   </label>
                   <div class="field-label">Розміри зміни, мм
                     <div class="dimension-row" aria-label="Розміри зміни правого яєчника">
-                      <input id="right-ovary-finding-size-length" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="довжина" />
-                      <input id="right-ovary-finding-size-width" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="ширина" />
-                      <input id="right-ovary-finding-size-depth" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="товщина" />
+                      <input class="report-input dimension-input ovary-finding-size" type="number" inputmode="decimal" placeholder="довжина" />
+                      <input class="report-input dimension-input ovary-finding-size" type="number" inputmode="decimal" placeholder="ширина" />
+                      <input class="report-input dimension-input ovary-finding-size" type="number" inputmode="decimal" placeholder="товщина" />
                     </div>
                   </div>
-                  <label class="field-label right-ovary-invasion" hidden>Інвазія
-                    <select id="right-ovary-invasion" class="report-input"><option>інвазії немає</option><option>є ознаки інвазії</option><option>інвазія не оцінюється</option></select>
+                  <label class="field-label ovary-invasion" hidden>Інвазія
+                    <select class="report-input"><option>інвазії немає</option><option>є ознаки інвазії</option><option>інвазія не оцінюється</option></select>
                   </label>
+                    </div>
+                    <button class="delete-ovary-finding" type="button" aria-label="Видалити утворення" hidden>× Видалити</button>
+                  </div>
                 </div>
-                <textarea id="right-ovary-notes" class="report-textarea" rows="2" placeholder="Додатковий опис вручну"></textarea>
+                <button class="add-ovary-finding" type="button" data-ovary-key="right">+ Додати утворення</button>
+                <label class="field-label">Додатково
+                  <textarea id="right-ovary-notes" class="report-textarea" rows="2" placeholder="Додатковий опис вручну"></textarea>
+                </label>
               </fieldset>
               <fieldset class="ovary-card" data-ovary="left">
                 <legend>Лівий яєчник</legend>
@@ -199,25 +207,33 @@
                 <label class="field-label">Структура
                   <select id="left-ovary-structure" class="report-input"><option>однорідної структури</option><option>неоднорідної структури</option></select>
                 </label>
-                <label class="field-label">Вогнищеві зміни / включення
-                  <select id="left-ovary-finding" class="report-input"><option value="none">без вогнищевих змін та патологічних включень</option><option>кіста</option><option>ендометріоїдна кіста</option><option value="mass">утвір</option><option value="other">інше</option></select>
-                </label>
-                <div class="left-ovary-finding-details" hidden>
+                <div id="left-ovary-findings" class="ovary-findings">
+                  <div class="ovary-finding-entry">
+                    <label class="field-label">Вогнищева зміна / включення
+                      <select class="report-input ovary-finding"><option value="none">без вогнищевих змін та патологічних включень</option><option>кіста</option><option>ендометріоїдна кіста</option><option value="mass">утвір</option><option value="other">інше</option></select>
+                    </label>
+                    <div class="ovary-finding-details" hidden>
                   <label class="field-label">Опис зміни
-                    <input id="left-ovary-finding-text" class="report-input" type="text" placeholder="тип, вміст, контури, сигнал тощо" />
+                    <input class="report-input ovary-finding-text" type="text" placeholder="назва, тип, вміст, контури, сигнал тощо" />
                   </label>
                   <div class="field-label">Розміри зміни, мм
                     <div class="dimension-row" aria-label="Розміри зміни лівого яєчника">
-                      <input id="left-ovary-finding-size-length" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="довжина" />
-                      <input id="left-ovary-finding-size-width" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="ширина" />
-                      <input id="left-ovary-finding-size-depth" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="товщина" />
+                      <input class="report-input dimension-input ovary-finding-size" type="number" inputmode="decimal" placeholder="довжина" />
+                      <input class="report-input dimension-input ovary-finding-size" type="number" inputmode="decimal" placeholder="ширина" />
+                      <input class="report-input dimension-input ovary-finding-size" type="number" inputmode="decimal" placeholder="товщина" />
                     </div>
                   </div>
-                  <label class="field-label left-ovary-invasion" hidden>Інвазія
-                    <select id="left-ovary-invasion" class="report-input"><option>інвазії немає</option><option>є ознаки інвазії</option><option>інвазія не оцінюється</option></select>
+                  <label class="field-label ovary-invasion" hidden>Інвазія
+                    <select class="report-input"><option>інвазії немає</option><option>є ознаки інвазії</option><option>інвазія не оцінюється</option></select>
                   </label>
+                    </div>
+                    <button class="delete-ovary-finding" type="button" aria-label="Видалити утворення" hidden>× Видалити</button>
+                  </div>
                 </div>
-                <textarea id="left-ovary-notes" class="report-textarea" rows="2" placeholder="Додатковий опис вручну"></textarea>
+                <button class="add-ovary-finding" type="button" data-ovary-key="left">+ Додати утворення</button>
+                <label class="field-label">Додатково
+                  <textarea id="left-ovary-notes" class="report-textarea" rows="2" placeholder="Додатковий опис вручну"></textarea>
+                </label>
               </fieldset>
             </div>
           </section>

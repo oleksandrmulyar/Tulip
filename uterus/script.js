@@ -715,19 +715,41 @@ const getDimensionValue = (...selectors) => selectors.map(getValue).filter(Boole
 const setupConditionalFields = (key) => {
   const position = document.querySelector(`#${key}-ovary-position`);
   const positionManual = document.querySelector(`.${key}-ovary-position-manual`);
-  const finding = document.querySelector(`#${key}-ovary-finding`);
-  const details = document.querySelector(`.${key}-ovary-finding-details`);
-  const invasion = document.querySelector(`.${key}-ovary-invasion`);
 
   const sync = () => {
     if (positionManual) positionManual.hidden = position?.value !== "manual";
-    if (details) details.hidden = !finding || finding.value === "none";
-    if (invasion) invasion.hidden = finding?.value !== "mass";
   };
 
   position?.addEventListener("change", sync);
-  finding?.addEventListener("change", sync);
   sync();
+};
+
+const setupOvaryFindingEntry = (entry) => {
+  const finding = entry.querySelector(".ovary-finding");
+  const details = entry.querySelector(".ovary-finding-details");
+  const invasion = entry.querySelector(".ovary-invasion");
+  const sync = () => {
+    details.hidden = finding.value === "none";
+    invasion.hidden = finding.value !== "mass";
+  };
+
+  finding.addEventListener("change", sync);
+  entry.querySelector(".delete-ovary-finding")?.addEventListener("click", () => entry.remove());
+  sync();
+};
+
+const addOvaryFinding = (key) => {
+  const container = document.querySelector(`#${key}-ovary-findings`);
+  const template = container?.querySelector(".ovary-finding-entry");
+  if (!container || !template) return;
+
+  const entry = template.cloneNode(true);
+  entry.querySelectorAll("input").forEach((input) => { input.value = ""; });
+  entry.querySelector(".ovary-finding").value = "mass";
+  entry.querySelector(".ovary-invasion select").selectedIndex = 0;
+  entry.querySelector(".delete-ovary-finding").hidden = false;
+  container.append(entry);
+  setupOvaryFindingEntry(entry);
 };
 
 
@@ -757,6 +779,7 @@ const renderReportPreview = () => {
   const uterusSize = getDimensionValue("#uterus-size-length", "#uterus-size-ap", "#uterus-size-width");
   const endometriumSize = getValue("#endometrium-size");
   const myometriumSize = getValue("#myometrium-size");
+  const additionalNotes = getValue("#additional-notes");
   const previewImages = [getSurfaceDataUrl("selected"), getSurfaceDataUrl("reference")].filter(Boolean);
   const lesions = [...getAnnotationPreviewItems("myoma"), ...getAnnotationPreviewItems("formation")];
   const ovaryLines = [buildOvaryLine("Правий", "right"), buildOvaryLine("Лівий", "left")].filter(Boolean);
@@ -766,7 +789,7 @@ const renderReportPreview = () => {
       ${item.size ? `<p>${escapeHtml(item.size)} мм</p>` : ""}
       ${item.label ? `<p><strong>${escapeHtml(item.label)}</strong></p>` : ""}
       ${item.wall !== "—" ? `<p>Стінка: ${escapeHtml(item.wall)}</p>` : ""}
-      ${item.location !== "—" ? `<p>Локалізація/опис: ${escapeHtml(item.location)}</p>` : ""}
+      ${item.location !== "—" ? `<p>Додатково: ${escapeHtml(item.location)}</p>` : ""}
     </div>`).join("");
 
   reportPreview.innerHTML = `
@@ -782,7 +805,8 @@ const renderReportPreview = () => {
       ${(uterusPosition || uterusSize) ? `<p><strong>Матка:</strong>${uterusPosition ? `<br>${escapeHtml(uterusPosition)}` : ""}${uterusSize ? `<br>${escapeHtml(uterusSize)} мм` : ""}</p>` : ""}
       ${endometriumSize ? `<p><strong>Ендометрій:</strong> ${escapeHtml(endometriumSize)} мм</p>` : ""}
       ${myometriumSize ? `<p><strong>Міометрій:</strong> ${escapeHtml(myometriumSize)} мм</p>` : ""}
-      ${lesionHtml || `<p class="report-preview-section"><strong>Ураження:</strong> —</p>`}
+      ${additionalNotes ? `<p><strong>Додатково:</strong> ${escapeHtml(additionalNotes)}</p>` : ""}
+      ${lesionHtml}
       ${ovaryLines.length ? `<div class="report-preview-ovaries"><p><strong>Яєчники:</strong></p>${ovaryLines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</div>` : ""}
     </div>`;
 };
@@ -812,25 +836,31 @@ const buildOvaryLine = (sideLabel, key) => {
   const positionValue = getValue(`#${key}-ovary-position`);
   const position = positionValue === "manual" ? getValue(`#${key}-ovary-position-text`) : positionValue;
   const structure = getValue(`#${key}-ovary-structure`);
-  const findingValue = getValue(`#${key}-ovary-finding`);
-  const findingText = getValue(`#${key}-ovary-finding-text`);
-  const findingSize = getDimensionValue(`#${key}-ovary-finding-size-length`, `#${key}-ovary-finding-size-width`, `#${key}-ovary-finding-size-depth`);
-  const invasion = findingValue === "mass" ? getValue(`#${key}-ovary-invasion`) : "";
   const notes = getValue(`#${key}-ovary-notes`);
   const parts = [];
 
   if (position) parts.push(position);
   if (size) parts.push(`розміри ${size} мм`);
   if (structure) parts.push(structure);
-  if (findingValue === "none") {
-    parts.push("без вогнищевих змін та патологічних включень");
-  } else if (findingValue) {
-    const findingParts = [findingValue === "mass" ? "утвір" : findingValue === "other" ? "інше" : findingValue];
+  const findingEntries = [...document.querySelectorAll(`#${key}-ovary-findings .ovary-finding-entry`)];
+  const hasSpecificFinding = findingEntries.some((entry) => entry.querySelector(".ovary-finding")?.value !== "none");
+  findingEntries.forEach((entry) => {
+    const findingValue = entry.querySelector(".ovary-finding")?.value || "";
+    if (findingValue === "none") {
+      if (!hasSpecificFinding) parts.push("без вогнищевих змін та патологічних включень");
+      return;
+    }
+
+    const findingText = entry.querySelector(".ovary-finding-text")?.value.trim() || "";
+    const findingSize = [...entry.querySelectorAll(".ovary-finding-size")].map((input) => input.value.trim()).filter(Boolean).join("×");
+    const invasion = findingValue === "mass" ? entry.querySelector(".ovary-invasion select")?.value.trim() : "";
+    const findingParts = [];
+    if (findingValue !== "other") findingParts.push(findingValue === "mass" ? "утвір" : findingValue);
     if (findingText) findingParts.push(findingText);
     if (findingSize) findingParts.push(`розміри ${findingSize} мм`);
     if (invasion) findingParts.push(invasion);
-    parts.push(findingParts.join(": "));
-  }
+    if (findingParts.length) parts.push(findingParts.join(": "));
+  });
   if (notes) parts.push(notes);
 
   return parts.length ? `${sideLabel} яєчник: ${parts.join("; ")}.` : "";
@@ -867,6 +897,10 @@ const generateReport = () => {
 
 setupConditionalFields("right");
 setupConditionalFields("left");
+document.querySelectorAll(".ovary-finding-entry").forEach(setupOvaryFindingEntry);
+document.querySelectorAll(".add-ovary-finding").forEach((button) => {
+  button.addEventListener("click", () => addOvaryFinding(button.dataset.ovaryKey));
+});
 renderGallery();
 renderFromUrl();
 
