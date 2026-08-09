@@ -72,6 +72,10 @@ const figoReferenceButton = document.querySelector("#figo-reference-button");
 const figoReferenceDialog = document.querySelector("#figo-reference-dialog");
 const figoReferenceBackdrop = document.querySelector("#figo-reference-backdrop");
 const figoReferenceClose = document.querySelector("#figo-reference-close");
+const endometriosisReferenceButton = document.querySelector("#endometriosis-reference-button");
+const endometriosisReferenceDialog = document.querySelector("#endometriosis-reference-dialog");
+const endometriosisReferenceBackdrop = document.querySelector("#endometriosis-reference-backdrop");
+const endometriosisReferenceClose = document.querySelector("#endometriosis-reference-close");
 const endometriosisToggle = document.querySelector("#endometriosis-toggle");
 const endometriosisOpen = document.querySelector("#endometriosis-open");
 const endometriosisDialog = document.querySelector("#endometriosis-dialog");
@@ -94,6 +98,22 @@ const setFigoReferenceOpen = (isOpen) => {
 figoReferenceButton?.addEventListener("click", () => setFigoReferenceOpen(true));
 figoReferenceClose?.addEventListener("click", () => setFigoReferenceOpen(false));
 figoReferenceBackdrop?.addEventListener("click", () => setFigoReferenceOpen(false));
+const setEndometriosisReferenceOpen = (isOpen) => {
+  endometriosisReferenceDialog.hidden = !isOpen;
+  endometriosisReferenceBackdrop.hidden = !isOpen;
+  document.body.style.overflow = isOpen ? "hidden" : "";
+  endometriosisReferenceButton.setAttribute("aria-expanded", String(isOpen));
+
+  if (isOpen) {
+    endometriosisReferenceClose.focus();
+  } else {
+    endometriosisReferenceButton.focus();
+  }
+};
+
+endometriosisReferenceButton?.addEventListener("click", () => setEndometriosisReferenceOpen(true));
+endometriosisReferenceClose?.addEventListener("click", () => setEndometriosisReferenceOpen(false));
+endometriosisReferenceBackdrop?.addEventListener("click", () => setEndometriosisReferenceOpen(false));
 const setEndometriosisOpen = (isOpen) => {
   endometriosisDialog.hidden = !isOpen;
   endometriosisBackdrop.hidden = !isOpen;
@@ -120,6 +140,9 @@ endometriosisBackdrop?.addEventListener("click", () => setEndometriosisOpen(fals
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !figoReferenceDialog?.hidden) {
     setFigoReferenceOpen(false);
+  }
+  if (event.key === "Escape" && !endometriosisReferenceDialog?.hidden) {
+    setEndometriosisReferenceOpen(false);
   }
   if (event.key === "Escape" && !endometriosisDialog?.hidden) {
     setEndometriosisOpen(false);
