@@ -830,7 +830,9 @@ const clinicalFieldGroups = [
     ["просвіт", () => getValue("#vagina-lumen"), "", "без особливостей"],
     ["патологічні зміни", () => getValue("#vagina-pathology"), "", "не виявлено"],
   ]],
-  ["Параметрії", [["Стан", () => getValue("#parametria-status"), "", "без інфільтративних змін"], ["опис", () => getValue("#parametria-details")]]],
+  ["Параметрії", [["", () => getValue("#parametria-status") === "changes"
+    ? getValue("#parametria-details")
+    : "без інфільтративних змін"]]],
   ["Сечовий міхур", [
     ["Наповнення", () => getValue("#bladder-filling"), "", "достатнє"],
     ["стінка", () => getValue("#bladder-wall"), "", "не потовщена"],
@@ -850,7 +852,7 @@ const getClinicalReportSections = () => {
     title,
     text: fields.map(([label, read, suffix = "", normalValue = ""]) => {
       const value = read() || normalValue;
-      return value ? `${label}: ${value}${suffix}` : "";
+      return value ? `${label ? `${label}: ` : ""}${value}${suffix}` : "";
     }).filter(Boolean).join("; "),
   })).filter(({ text }) => text);
 
