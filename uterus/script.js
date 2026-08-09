@@ -72,6 +72,10 @@ const figoReferenceButton = document.querySelector("#figo-reference-button");
 const figoReferenceDialog = document.querySelector("#figo-reference-dialog");
 const figoReferenceBackdrop = document.querySelector("#figo-reference-backdrop");
 const figoReferenceClose = document.querySelector("#figo-reference-close");
+const endometriosisToggle = document.querySelector("#endometriosis-toggle");
+const endometriosisDialog = document.querySelector("#endometriosis-dialog");
+const endometriosisBackdrop = document.querySelector("#endometriosis-backdrop");
+const endometriosisClose = document.querySelector("#endometriosis-close");
 
 const setFigoReferenceOpen = (isOpen) => {
   figoReferenceDialog.hidden = !isOpen;
@@ -89,9 +93,26 @@ const setFigoReferenceOpen = (isOpen) => {
 figoReferenceButton?.addEventListener("click", () => setFigoReferenceOpen(true));
 figoReferenceClose?.addEventListener("click", () => setFigoReferenceOpen(false));
 figoReferenceBackdrop?.addEventListener("click", () => setFigoReferenceOpen(false));
+const setEndometriosisOpen = (isOpen) => {
+  endometriosisDialog.hidden = !isOpen;
+  endometriosisBackdrop.hidden = !isOpen;
+  document.body.style.overflow = isOpen ? "hidden" : "";
+  endometriosisToggle?.setAttribute("aria-expanded", String(isOpen));
+  if (isOpen) endometriosisClose?.focus();
+};
+
+endometriosisToggle?.addEventListener("change", () => {
+  if (endometriosisToggle.checked) setEndometriosisOpen(true);
+  else setEndometriosisOpen(false);
+});
+endometriosisClose?.addEventListener("click", () => setEndometriosisOpen(false));
+endometriosisBackdrop?.addEventListener("click", () => setEndometriosisOpen(false));
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !figoReferenceDialog?.hidden) {
     setFigoReferenceOpen(false);
+  }
+  if (event.key === "Escape" && !endometriosisDialog?.hidden) {
+    setEndometriosisOpen(false);
   }
 });
 
@@ -790,21 +811,35 @@ const renderOvaryLine = (line) => {
 const clinicalFieldGroups = [
   ["Шийка матки", [
     ["Розміри", () => getDimensionValue("#cervix-size-length", "#cervix-size-ap", "#cervix-size-width"), " мм"],
-    ["строма", () => getValue("#cervix-stroma")], ["цервікальний канал", () => getValue("#cervical-canal")],
-    ["наботові кісти / утворення", () => getValue("#cervix-formations")],
+    ["строма", () => getValue("#cervix-stroma"), "", "однорідна"],
+    ["цервікальний канал", () => getValue("#cervical-canal"), "", "не розширений"],
+    ["наботові кісти / утворення", () => getValue("#cervix-formations"), "", "не виявлено"],
   ]],
-  ["Піхва", [["Стінки", () => getValue("#vagina-walls")], ["просвіт", () => getValue("#vagina-lumen")], ["патологічні зміни", () => getValue("#vagina-pathology")]]],
-  ["Параметрії", [["Стан", () => getValue("#parametria-status")], ["опис", () => getValue("#parametria-details")]]],
-  ["Сечовий міхур", [["Наповнення", () => getValue("#bladder-filling")], ["стінка", () => getValue("#bladder-wall")]]],
-  ["Пряма кишка", [["Стінка", () => getValue("#rectum-wall")], ["параректальна клітковина", () => getValue("#pararectal-tissue")]]],
-  ["Лімфатичні вузли", [["Тазові", () => getValue("#pelvic-nodes")], ["пахвинні", () => getValue("#inguinal-nodes")], ["додатково", () => getValue("#nodes-details")]]],
+  ["Піхва", [
+    ["Стінки", () => getValue("#vagina-walls"), "", "не потовщені"],
+    ["просвіт", () => getValue("#vagina-lumen"), "", "без особливостей"],
+    ["патологічні зміни", () => getValue("#vagina-pathology"), "", "не виявлено"],
+  ]],
+  ["Параметрії", [["Стан", () => getValue("#parametria-status"), "", "без інфільтративних змін"], ["опис", () => getValue("#parametria-details")]]],
+  ["Сечовий міхур", [
+    ["Наповнення", () => getValue("#bladder-filling"), "", "достатнє"],
+    ["стінка", () => getValue("#bladder-wall"), "", "не потовщена"],
+  ]],
+  ["Пряма кишка", [
+    ["Стінка", () => getValue("#rectum-wall"), "", "не потовщена"],
+    ["параректальна клітковина", () => getValue("#pararectal-tissue"), "", "без інфільтративних змін"],
+  ]],
+  ["Лімфатичні вузли", [
+    ["Тазові", () => getValue("#pelvic-nodes") === "other" ? getValue("#pelvic-nodes-details") : getValue("#pelvic-nodes"), "", "патологічно не збільшені"],
+    ["пахвинні", () => getValue("#inguinal-nodes") === "other" ? getValue("#inguinal-nodes-details") : getValue("#inguinal-nodes"), "", "патологічно не збільшені"],
+  ]],
 ];
 
 const getClinicalReportSections = () => {
   const sections = clinicalFieldGroups.map(([title, fields]) => ({
     title,
-    text: fields.map(([label, read, suffix = ""]) => {
-      const value = read();
+    text: fields.map(([label, read, suffix = "", normalValue = ""]) => {
+      const value = read() || normalValue;
       return value ? `${label}: ${value}${suffix}` : "";
     }).filter(Boolean).join("; "),
   })).filter(({ text }) => text);
@@ -820,8 +855,8 @@ const getClinicalReportSections = () => {
       ["Піхва", "#endo-vagina"], ["Кишківник", "#endo-bowel"], ["Сечовий міхур", "#endo-bladder"],
       ["Сечоводи", "#endo-ureters"], ["Спайковий процес", "#endo-adhesions"],
     ];
-    const text = fields.map(([label, selector]) => getValue(selector) ? `${label}: ${getValue(selector)}` : "").filter(Boolean).join("; ");
-    sections.push({ title: "Ендометріоз", text: text || "розділ активовано" });
+    const text = fields.map(([label, selector]) => `${label}: ${getValue(selector) || "ознак ураження не виявлено"}`).join("; ");
+    sections.push({ title: "Ендометріоз", text });
   }
   return sections;
 };
@@ -956,8 +991,9 @@ const generateReport = () => {
 setupConditionalFields("right");
 setupConditionalFields("left");
 setupRevealControl("#parametria-status", "#parametria-details-wrap", (control) => control.value === "changes");
+setupRevealControl("#pelvic-nodes", "#pelvic-nodes-details-wrap", (control) => control.value === "other");
+setupRevealControl("#inguinal-nodes", "#inguinal-nodes-details-wrap", (control) => control.value === "other");
 setupRevealControl("#free-fluid-status", "#free-fluid-size-wrap", (control) => control.value === "measured");
-setupRevealControl("#endometriosis-toggle", "#endometriosis-fields", (control) => control.checked);
 document.querySelectorAll(".ovary-finding-entry").forEach(setupOvaryFindingEntry);
 document.querySelectorAll(".add-ovary-finding").forEach((button) => {
   button.addEventListener("click", () => addOvaryFinding(button.dataset.ovaryKey));
