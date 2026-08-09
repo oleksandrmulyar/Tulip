@@ -1164,6 +1164,21 @@ const saveBlob = (blob, fileName) => {
   window.setTimeout(() => URL.revokeObjectURL(url), 60000);
 };
 
+const setupCollapsiblePanels = () => {
+  document.querySelectorAll(".collapse-panel-button").forEach((button) => {
+    const content = document.getElementById(button.getAttribute("aria-controls"));
+    if (!content) return;
+
+    button.addEventListener("click", () => {
+      const isExpanded = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", String(!isExpanded));
+      content.hidden = isExpanded;
+      button.querySelector(".collapse-panel-label").textContent = isExpanded ? "Розгорнути" : "Згорнути";
+      button.querySelector(".collapse-panel-icon").textContent = isExpanded ? "⌄" : "⌃";
+    });
+  });
+};
+
 const downloadReportImage = async () => {
   const defaultLabel = downloadReportButton.textContent;
   downloadReportButton.disabled = true;
@@ -1185,4 +1200,5 @@ const downloadReportImage = async () => {
 
 reportButton?.addEventListener("click", generateReport);
 downloadReportButton?.addEventListener("click", downloadReportImage);
+setupCollapsiblePanels();
 window.addEventListener("popstate", renderFromUrl);
