@@ -234,6 +234,91 @@
             </div>
           </section>
 
+          <section class="report-panel" aria-label="Органи малого таза">
+            <div class="myoma-panel-header"><h2>Органи малого таза</h2></div>
+            <div class="clinical-sections">
+              <fieldset class="clinical-card">
+                <legend>Шийка матки</legend>
+                <div class="field-label">Розміри, мм
+                  <div class="dimension-row">
+                    <input id="cervix-size-length" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="довжина" aria-label="Довжина шийки матки" />
+                    <input id="cervix-size-ap" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="передньо-задній" aria-label="Передньо-задній розмір шийки матки" />
+                    <input id="cervix-size-width" class="report-input dimension-input" type="number" inputmode="decimal" placeholder="ширина" aria-label="Ширина шийки матки" />
+                  </div>
+                </div>
+                <label class="field-label">Строма<input id="cervix-stroma" class="report-input" type="text" placeholder="однорідна / патологічні зміни" /></label>
+                <label class="field-label">Цервікальний канал<input id="cervical-canal" class="report-input" type="text" placeholder="не розширений / опис змін" /></label>
+                <label class="field-label">Наботові кісти / утворення<textarea id="cervix-formations" class="report-textarea" rows="2" placeholder="не виявлено / опис, локалізація та розміри"></textarea></label>
+              </fieldset>
+
+              <fieldset class="clinical-card">
+                <legend>Піхва</legend>
+                <label class="field-label">Стінки<input id="vagina-walls" class="report-input" type="text" placeholder="не потовщені / опис змін" /></label>
+                <label class="field-label">Просвіт<input id="vagina-lumen" class="report-input" type="text" placeholder="без особливостей / вміст" /></label>
+                <label class="field-label">Патологічні зміни<textarea id="vagina-pathology" class="report-textarea" rows="2" placeholder="не виявлено / опис змін"></textarea></label>
+              </fieldset>
+
+              <fieldset class="clinical-card">
+                <legend>Параметрії</legend>
+                <label class="field-label">Стан
+                  <select id="parametria-status" class="report-input"><option>без інфільтративних змін</option><option value="changes">зміни</option></select>
+                </label>
+                <label id="parametria-details-wrap" class="field-label" hidden>Опис змін<textarea id="parametria-details" class="report-textarea" rows="2" placeholder="локалізація та характер змін"></textarea></label>
+              </fieldset>
+
+              <fieldset class="clinical-card">
+                <legend>Сечовий міхур</legend>
+                <label class="field-label">Наповнення<input id="bladder-filling" class="report-input" type="text" placeholder="достатнє / недостатнє" /></label>
+                <label class="field-label">Стінка<input id="bladder-wall" class="report-input" type="text" placeholder="не потовщена / товщина та зміни" /></label>
+              </fieldset>
+
+              <fieldset class="clinical-card">
+                <legend>Пряма кишка</legend>
+                <label class="field-label">Стінка<input id="rectum-wall" class="report-input" type="text" placeholder="не потовщена / опис змін" /></label>
+                <label class="field-label">Параректальна клітковина<input id="pararectal-tissue" class="report-input" type="text" placeholder="без інфільтративних змін / опис" /></label>
+              </fieldset>
+
+              <fieldset class="clinical-card">
+                <legend>Лімфатичні вузли</legend>
+                <label class="field-label">Тазові
+                  <select id="pelvic-nodes" class="report-input"><option>патологічно не збільшені</option><option>патологічно збільшені</option></select>
+                </label>
+                <label class="field-label">Пахвинні
+                  <select id="inguinal-nodes" class="report-input"><option>патологічно не збільшені</option><option>патологічно збільшені</option></select>
+                </label>
+                <label class="field-label">Додатково<input id="nodes-details" class="report-input" type="text" placeholder="локалізація, кількість, розміри" /></label>
+              </fieldset>
+
+              <fieldset class="clinical-card clinical-card-wide">
+                <legend>Вільна рідина</legend>
+                <div class="inline-fields">
+                  <label class="field-label">Кількість
+                    <select id="free-fluid-status" class="report-input"><option value="none">немає</option><option value="physiological">фізіологічна кількість</option><option value="measured">вказати кількість у мм</option></select>
+                  </label>
+                  <label id="free-fluid-size-wrap" class="field-label" hidden>Кількість, мм<input id="free-fluid-size" class="report-input" type="number" inputmode="decimal" placeholder="мм" /></label>
+                </div>
+              </fieldset>
+            </div>
+          </section>
+
+          <section class="report-panel" aria-label="Ендометріоз">
+            <div class="myoma-panel-header endometriosis-header">
+              <h2>Ендометріоз</h2>
+              <label class="switch-label"><input id="endometriosis-toggle" type="checkbox" role="switch" aria-controls="endometriosis-fields" aria-expanded="false" /><span class="switch" aria-hidden="true"></span><span>Увімкнути</span></label>
+            </div>
+            <div id="endometriosis-fields" class="endometriosis-grid" hidden>
+              <label class="field-label">Ендометріоми яєчників<textarea id="endo-ovaries" class="report-textarea" rows="2" placeholder="сторона, кількість і розміри"></textarea></label>
+              <label class="field-label">Torus uterinus<textarea id="endo-torus" class="report-textarea" rows="2" placeholder="опис змін"></textarea></label>
+              <label class="field-label">Крижово-маткові зв’язки<textarea id="endo-ligaments" class="report-textarea" rows="2" placeholder="сторона, потовщення, вузли"></textarea></label>
+              <label class="field-label">Ректовагінальна перегородка<textarea id="endo-rectovaginal" class="report-textarea" rows="2" placeholder="опис змін"></textarea></label>
+              <label class="field-label">Піхва<textarea id="endo-vagina" class="report-textarea" rows="2" placeholder="опис ураження"></textarea></label>
+              <label class="field-label">Кишківник<textarea id="endo-bowel" class="report-textarea" rows="2" placeholder="відділ, протяжність та глибина ураження"></textarea></label>
+              <label class="field-label">Сечовий міхур<textarea id="endo-bladder" class="report-textarea" rows="2" placeholder="локалізація та розміри ураження"></textarea></label>
+              <label class="field-label">Сечоводи<textarea id="endo-ureters" class="report-textarea" rows="2" placeholder="сторона та опис змін"></textarea></label>
+              <label class="field-label report-grid-wide">Спайковий процес<textarea id="endo-adhesions" class="report-textarea" rows="2" placeholder="локалізація та вираженість"></textarea></label>
+            </div>
+          </section>
+
           <section class="report-panel" aria-label="Формування звіту">
             <div class="myoma-panel-header">
               <h2>Звіт</h2>
