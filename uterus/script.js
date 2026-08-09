@@ -712,6 +712,18 @@ const getValue = (selector) => document.querySelector(selector)?.value.trim() ||
 
 const getDimensionValue = (...selectors) => selectors.map(getValue).filter(Boolean).join("×");
 
+const setupRevealControl = (controlSelector, targetSelector, isVisible) => {
+  const control = document.querySelector(controlSelector);
+  const target = document.querySelector(targetSelector);
+  const sync = () => {
+    const visible = Boolean(control && isVisible(control));
+    if (target) target.hidden = !visible;
+    control?.setAttribute("aria-expanded", String(visible));
+  };
+  control?.addEventListener("change", sync);
+  sync();
+};
+
 const setupConditionalFields = (key) => {
   const position = document.querySelector(`#${key}-ovary-position`);
   const positionManual = document.querySelector(`.${key}-ovary-position-manual`);
@@ -775,6 +787,45 @@ const renderOvaryLine = (line) => {
   return `<p><strong><em>${escapeHtml(labelMatch[1])}</em></strong>:${escapeHtml(labelMatch[2])}</p>`;
 };
 
+const clinicalFieldGroups = [
+  ["Шийка матки", [
+    ["Розміри", () => getDimensionValue("#cervix-size-length", "#cervix-size-ap", "#cervix-size-width"), " мм"],
+    ["строма", () => getValue("#cervix-stroma")], ["цервікальний канал", () => getValue("#cervical-canal")],
+    ["наботові кісти / утворення", () => getValue("#cervix-formations")],
+  ]],
+  ["Піхва", [["Стінки", () => getValue("#vagina-walls")], ["просвіт", () => getValue("#vagina-lumen")], ["патологічні зміни", () => getValue("#vagina-pathology")]]],
+  ["Параметрії", [["Стан", () => getValue("#parametria-status")], ["опис", () => getValue("#parametria-details")]]],
+  ["Сечовий міхур", [["Наповнення", () => getValue("#bladder-filling")], ["стінка", () => getValue("#bladder-wall")]]],
+  ["Пряма кишка", [["Стінка", () => getValue("#rectum-wall")], ["параректальна клітковина", () => getValue("#pararectal-tissue")]]],
+  ["Лімфатичні вузли", [["Тазові", () => getValue("#pelvic-nodes")], ["пахвинні", () => getValue("#inguinal-nodes")], ["додатково", () => getValue("#nodes-details")]]],
+];
+
+const getClinicalReportSections = () => {
+  const sections = clinicalFieldGroups.map(([title, fields]) => ({
+    title,
+    text: fields.map(([label, read, suffix = ""]) => {
+      const value = read();
+      return value ? `${label}: ${value}${suffix}` : "";
+    }).filter(Boolean).join("; "),
+  })).filter(({ text }) => text);
+
+  const fluidStatus = getValue("#free-fluid-status");
+  const fluidLabels = { none: "немає", physiological: "фізіологічна кількість", measured: `${getValue("#free-fluid-size") || "не вказано"} мм` };
+  if (fluidStatus) sections.push({ title: "Вільна рідина", text: fluidLabels[fluidStatus] });
+
+  if (document.querySelector("#endometriosis-toggle")?.checked) {
+    const fields = [
+      ["Ендометріоми яєчників", "#endo-ovaries"], ["Torus uterinus", "#endo-torus"],
+      ["Крижово-маткові зв’язки", "#endo-ligaments"], ["Ректовагінальна перегородка", "#endo-rectovaginal"],
+      ["Піхва", "#endo-vagina"], ["Кишківник", "#endo-bowel"], ["Сечовий міхур", "#endo-bladder"],
+      ["Сечоводи", "#endo-ureters"], ["Спайковий процес", "#endo-adhesions"],
+    ];
+    const text = fields.map(([label, selector]) => getValue(selector) ? `${label}: ${getValue(selector)}` : "").filter(Boolean).join("; ");
+    sections.push({ title: "Ендометріоз", text: text || "розділ активовано" });
+  }
+  return sections;
+};
+
 const renderReportPreview = () => {
   if (!reportPreview) return;
 
@@ -787,6 +838,7 @@ const renderReportPreview = () => {
   const previewImages = [getSurfaceDataUrl("selected"), getSurfaceDataUrl("reference")].filter(Boolean);
   const lesions = [...getAnnotationPreviewItems("myoma"), ...getAnnotationPreviewItems("formation")];
   const ovaryLines = [buildOvaryLines("Правий", "right"), buildOvaryLines("Лівий", "left")].flat();
+  const clinicalSections = getClinicalReportSections();
   const lesionHtml = lesions.map((item) => `
     <div class="report-preview-lesion">
       <div class="report-preview-lesion-title"><span class="report-preview-dot" style="--myoma-color:${escapeHtml(item.color)}"></span>${escapeHtml(item.type === "myoma" ? `Міома ${item.number}:` : `Утвір ${item.number}:`)}</div>
@@ -811,6 +863,7 @@ const renderReportPreview = () => {
       ${additionalNotes ? `<p><strong>Додатково:</strong> ${escapeHtml(additionalNotes)}</p>` : ""}
       ${lesionHtml}
       ${ovaryLines.length ? `<div class="report-preview-ovaries"><p><strong>Яєчники:</strong></p>${ovaryLines.map(renderOvaryLine).join("")}</div>` : ""}
+      ${clinicalSections.map(({ title, text }) => `<p><strong>${escapeHtml(title)}:</strong> ${escapeHtml(text)}.</p>`).join("")}
     </div>`;
 };
 
@@ -891,6 +944,8 @@ const buildReportLines = () => {
   const ovaryLines = [buildOvaryLines("Правий", "right"), buildOvaryLines("Лівий", "left")].flat();
   if (ovaryLines.length) lines.push("Яєчники:", ...ovaryLines);
 
+  getClinicalReportSections().forEach(({ title, text }) => lines.push(`${title}: ${text}.`));
+
   return lines;
 };
 
@@ -900,6 +955,9 @@ const generateReport = () => {
 
 setupConditionalFields("right");
 setupConditionalFields("left");
+setupRevealControl("#parametria-status", "#parametria-details-wrap", (control) => control.value === "changes");
+setupRevealControl("#free-fluid-status", "#free-fluid-size-wrap", (control) => control.value === "measured");
+setupRevealControl("#endometriosis-toggle", "#endometriosis-fields", (control) => control.checked);
 document.querySelectorAll(".ovary-finding-entry").forEach(setupOvaryFindingEntry);
 document.querySelectorAll(".add-ovary-finding").forEach((button) => {
   button.addEventListener("click", () => addOvaryFinding(button.dataset.ovaryKey));
