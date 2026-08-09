@@ -653,6 +653,7 @@ h1 {
 .inline-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .endometriosis-header { margin-bottom: 0; }
 .endometriosis-header:has(+ .endometriosis-grid:not([hidden])) { margin-bottom: 18px; }
+.endometriosis-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 
 .switch-label { display: inline-flex; align-items: center; gap: 9px; font-size: .9rem; font-weight: 650; cursor: pointer; }
 .switch-label input { position: absolute; width: 1px; height: 1px; opacity: 0; }
@@ -722,6 +723,9 @@ h1 {
 }
 
 @media (max-width: 760px) {
+  .endometriosis-header { align-items: flex-start; }
+  .endometriosis-actions { flex-direction: column-reverse; align-items: flex-end; }
+
   .report-grid,
   .ovary-grid,
   .clinical-sections,

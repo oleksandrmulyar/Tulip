@@ -333,7 +333,18 @@
           <section class="report-panel" aria-label="Ендометріоз">
             <div class="myoma-panel-header endometriosis-header">
               <h2>Ендометріоз</h2>
-              <label class="switch-label"><input id="endometriosis-toggle" type="checkbox" role="switch" aria-controls="endometriosis-fields" aria-expanded="false" /><span class="switch" aria-hidden="true"></span><span>Увімкнути</span></label>
+              <div class="endometriosis-actions">
+                <button
+                  class="download-image-button"
+                  id="endometriosis-open"
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-controls="endometriosis-dialog"
+                  aria-expanded="false"
+                  hidden
+                >Відкрити таблицю</button>
+                <label class="switch-label"><input id="endometriosis-toggle" type="checkbox" role="switch" aria-controls="endometriosis-dialog" aria-expanded="false" /><span class="switch" aria-hidden="true"></span><span>Увімкнути</span></label>
+              </div>
             </div>
           </section>
 
