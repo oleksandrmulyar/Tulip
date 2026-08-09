@@ -126,6 +126,10 @@ body {
   object-fit: contain;
 }
 
+.endometriosis-dialog {
+  width: min(820px, 94vw);
+}
+
 .app {
   width: min(1100px, 100%);
   margin: 0 auto;
