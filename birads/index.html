@@ -6,36 +6,74 @@
   <title>BI-RADS — Tulip</title>
   <link rel="shortcut icon" href="/favicon.ico">
   <style>
-    :root{--bg:#fff;--panel:#fff;--muted:#6b7280;--ink:#0f172a;--line:#e6edf0}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto; margin:18px; color:var(--ink); background:radial-gradient(circle at 50% 0%,#fff 0,#fbf6f8 40%,#f4f8f5 100%)}
+    :root{--bg:#f7faf7;--panel:#fff;--muted:#6b7280;--ink:#0f172a;--line:#e6edf0}
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:18px;color:var(--ink);background:radial-gradient(circle at 50% 0%,#fff 0,#fbf6f8 40%,#f4f8f5 100%)}
     a.home{display:inline-block;margin-bottom:12px;color:var(--ink);text-decoration:none}
-    .wrap{max-width:1100px;margin:0 auto}
+    .wrap{max-width:1200px;margin:0 auto}
+    h1{margin:0 0 8px}
     .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
     .panel{background:var(--panel);border:1px solid var(--line);padding:14px;border-radius:10px}
-    h1{margin:0 0 8px}
     label{display:block;margin:8px 0;font-weight:600}
     input[type=text],select,textarea{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:8px;font:inherit}
-    .formations-table{width:100%;border-collapse:collapse}
-    .formations-table th,.formations-table td{border-bottom:1px solid #eef2f7;padding:8px;text-align:left}
+
+    /* breast styles adapted */
+    .choice-grid{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:18px}
+    .choice-card{display:grid;gap:16px;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);cursor:pointer;place-items:center}
+    .choice-card img{width:100%;max-height:240px;object-fit:contain}
+
+    .image-stage{position:relative;width:100%;}
+    .image-stage img{display:block;width:100%;max-height:560px;object-fit:contain}
+    .lesion-overlay{position:absolute;inset:0;pointer-events:auto}
+    .lesion-marker{position:absolute;display:inline-grid;padding:0;place-items:center;border:3px solid;border-radius:50%;cursor:grab;font-size:13px;font-weight:800;line-height:1;touch-action:none;user-select:none;box-shadow:0 4px 12px rgba(15,23,42,.18);transform:translate(-50%,-50%)}
+    .lesion-label{pointer-events:none;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+    .lesion-resize-handle{position:absolute;right:-8px;bottom:-8px;width:14px;height:14px;border:2px solid #fff;border-radius:50%;background:currentColor;cursor:nwse-resize}
+
+    .table-shell{overflow-x:auto;border-radius:6px}
+    .table-row{display:grid;grid-template-columns:80px 1fr 110px;gap:12px;align-items:center;min-width:420px;padding:10px}
+    .table-header{background:#f2f4f7;font-weight:800}
+    .table-body-row{border-top:1px solid var(--line);background:#fff}
+
     .btn{display:inline-block;padding:8px 10px;border-radius:8px;border:0;background:#0f172a;color:#fff;cursor:pointer}
-    #breast-iframe{width:100%;height:560px;border:1px solid var(--line);border-radius:8px}
+    .btn.ghost{background:#6b7280}
     .report-preview{white-space:pre-wrap;background:#fff;border:1px solid var(--line);padding:12px;border-radius:8px;min-height:220px}
-    @media (max-width:980px){.grid{grid-template-columns:1fr}#breast-iframe{height:420px}}
+
+    @media (max-width:980px){.grid{grid-template-columns:1fr}.choice-grid{grid-template-columns:1fr}.image-stage img{max-height:420px}}
   </style>
 </head>
 <body>
   <div class="wrap">
     <a class="home" href="/">← Головна</a>
     <h1>BI-RADS — Формування звіту (MRI, без порівняння)</h1>
-    <p style="color:var(--muted);margin-top:6px">Доступно за /birads — завжди МРТ молочних залоз, без полів «Показання» і «Методика». Розміри грудей не вводяться.</p>
+    <p style="color:var(--muted);margin-top:6px">Доступно за /birads — завжди МРТ молочних залоз. Показання і методика не збираються. Розміри грудних залоз не вводяться. Автопозиціювання утворів відключено.</p>
 
     <div class="grid" role="application">
       <div>
-        <div class="panel" aria-label="Схема грудних залоз">
-          <h2>Схема грудних залоз</h2>
-          <!-- Вбудовано як iframe на існуючу сторінку зі схемою -->
-          <iframe id="breast-iframe" src="https://oleksandrmulyar.github.io/breast/" title="Схема грудних залоз"></iframe>
-          <p style="color:var(--muted);font-size:.9rem;margin-top:8px">Схема з зовнішнього ресурсу; позначайте знахідки на схемі та в таблиці «Утворення».</p>
+        <div class="panel" aria-label="Оберіть грудну залозу">
+          <h2>Оберіть грудну залозу</h2>
+          <div class="choice-grid" id="sideSelection">
+            <button class="choice-card" type="button" data-side="right">
+              <img src="https://raw.githubusercontent.com/oleksandrmulyar/breast/main/right-breast.jpg" alt="Права грудна залоза">
+              <span>Права грудна залоза</span>
+            </button>
+            <button class="choice-card" type="button" data-side="left">
+              <img src="https://raw.githubusercontent.com/oleksandrmulyar/breast/main/left-breast.jpg" alt="Ліва грудна залоза">
+              <span>Ліва грудна залоза</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px" aria-label="Схема">
+          <h2>Схема — позначення утворів</h2>
+          <div class="image-stage panel" id="detailView">
+            <img id="primaryImage" src="https://raw.githubusercontent.com/oleksandrmulyar/breast/main/right-breast.jpg" alt="Обрана грудна залоза">
+            <div id="lesionOverlay" class="lesion-overlay" aria-live="polite"></div>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <button id="saveImage" class="btn" type="button">Зберегти зображення</button>
+            <button id="addFormation" class="btn" type="button">+ Додати утвір</button>
+            <div style="margin-left:auto;color:var(--muted)">Клік на зображенні додає маркер до вибраного утвору</div>
+          </div>
         </div>
 
         <div class="panel" style="margin-top:12px" aria-label="Опитувальник">
@@ -63,25 +101,23 @@
               <option>Marked</option>
             </select>
           </label>
-
-          <label style="margin-top:10px">Утворення
-            <table class="formations-table" aria-describedby="formations-desc">
-              <thead><tr><th style="width:6%">#</th><th>Назва</th><th>Локалізація</th><th style="width:18%">Розміри, мм</th><th>Дії</th></tr></thead>
-              <tbody id="formationList"><tr><td colspan="5" style="color:var(--muted);padding:12px">Немає утворень</td></tr></tbody>
-            </table>
-          </label>
-          <div style="margin-top:8px"><button id="addFormation" class="btn" type="button">+ Додати утвір</button></div>
-
         </div>
 
       </div>
 
       <aside>
-        <div class="panel" aria-label="Керування">
-          <h2>Керування</h2>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button id="generateReport" class="btn" type="button">Сформувати звіт</button>
-            <button id="clearBtn" class="btn" type="button" style="background:#6b7280">Очистити</button>
+        <div class="panel" aria-label="Утвори та керування">
+          <h2>Утвори</h2>
+          <div class="table-shell" style="margin-top:8px">
+            <div class="table-row table-header">
+              <span>№</span><span>Назва / Примітки</span><span>Колір</span>
+            </div>
+            <div id="formationList"></div>
+          </div>
+
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button id="generateReport" class="btn">Сформувати звіт</button>
+            <button id="clearBtn" class="btn ghost">Очистити</button>
           </div>
 
           <div style="margin-top:12px">
@@ -92,7 +128,7 @@
 
         <div class="panel" style="margin-top:12px">
           <h3>Пояснення</h3>
-          <p style="color:var(--muted);font-size:.95rem">Це спрощена сторінка для BI-RADS MRI: показання і методика не збираються, розміри грудей не вводяться. Для складніших опцій відкрийте повний інструмент.</p>
+          <p style="color:var(--muted);font-size:.95rem">Функціонал: додавання утворів, призначення назви і кольору, додавання маркерів кликом на схемі (ручне позиціювання), перетягування і зміна розміру маркерів, збереження зображення, генерація тексту звіту.</p>
         </div>
       </aside>
     </div>
@@ -100,59 +136,149 @@
   </div>
 
   <script>
+    // Adapted behavior from breast app.js with auto-positioning removed.
+    const images = {
+      right: 'https://raw.githubusercontent.com/oleksandrmulyar/breast/main/right-breast.jpg',
+      left: 'https://raw.githubusercontent.com/oleksandrmulyar/breast/main/left-breast.jpg'
+    };
+    const lesionColors = ['#f13d3d','#1d9bf0','#18a058','#f59e0b','#8b5cf6','#ec4899'];
+
+    const sideButtons = document.querySelectorAll('.choice-card');
+    const primaryImage = document.getElementById('primaryImage');
+    const lesionOverlay = document.getElementById('lesionOverlay');
+    const addFormationBtn = document.getElementById('addFormation');
     const formationList = document.getElementById('formationList');
-    const addFormation = document.getElementById('addFormation');
-    const generateReport = document.getElementById('generateReport');
+    const saveImageBtn = document.getElementById('saveImage');
+    const generateReportBtn = document.getElementById('generateReport');
     const clearBtn = document.getElementById('clearBtn');
     const reportPreview = document.getElementById('reportPreview');
 
+    let activeSide = 'right';
+    let formations = []; // {id,name,color,markers:[{x,y,size}]}
+    let nextId = 1;
+    let activeEdit = null; // for pointer actions
+    let activeFormationId = null; // which formation is selected for marker adding
+
+    function setSide(side){
+      activeSide = side; primaryImage.src = images[side]; renderMarkers();
+    }
+    sideButtons.forEach(btn => btn.addEventListener('click', ()=> setSide(btn.dataset.side)));
+
+    function saveImage(){
+      // simple download of image file
+      fetch(images[activeSide]).then(r=>r.blob()).then(blob=>{
+        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${activeSide}-breast.jpg`; document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      });
+    }
+    saveImageBtn.addEventListener('click', saveImage);
+
+    function addFormation(){
+      const id = nextId++;
+      const formation = {id, name:'', color: lesionColors[(id-1)%lesionColors.length], markers: []};
+      formations.push(formation); renderFormations();
+      setActiveFormation(id);
+    }
+    addFormationBtn.addEventListener('click', addFormation);
+
     function renderFormations(){
-      const rows = formationList.querySelectorAll('tr.item');
-      if(rows.length===0){ formationList.innerHTML='<tr><td colspan="5" style="color:var(--muted);padding:12px">Немає утворень</td></tr>'; return; }
+      formationList.innerHTML = '';
+      if(formations.length===0){ formationList.innerHTML = '<div class="table-row table-body-row" style="color:var(--muted);padding:12px">Немає утворень</div>'; return; }
+      formations.forEach((f,i)=>{
+        const row = document.createElement('div'); row.className='table-row table-body-row'; row.dataset.id = f.id;
+        row.innerHTML = `<span>${f.id}</span><span><input class="fname" type="text" placeholder="Назва утвору" value="${escapeHtml(f.name)}"></span><span><input type="color" class="fcolor" value="${f.color}"></span>`;
+        formationList.append(row);
+        row.querySelector('.fname').addEventListener('input', (e)=>{ f.name = e.target.value; });
+        row.querySelector('.fcolor').addEventListener('input', (e)=>{ f.color = e.target.value; renderMarkers(); });
+        row.addEventListener('click', ()=> setActiveFormation(f.id));
+      });
+      renderMarkers();
     }
 
-    addFormation.addEventListener('click', ()=>{
-      const index = formationList.querySelectorAll('tr.item').length + 1;
-      const tr = document.createElement('tr'); tr.className='item';
-      tr.innerHTML = `<td>${index}</td>
-        <td><input type="text" class="form-name" placeholder="Назва (наприклад: вузол)"></td>
-        <td><input type="text" class="form-location" placeholder="ліва/права/грудь, сектор"></td>
-        <td><input type="text" class="form-size" placeholder="TR×AP×CC або Ø"></td>
-        <td><button class="btn remove" type="button" style="background:#ef4444">Видалити</button></td>`;
-      formationList.appendChild(tr);
-      renderFormations();
-      tr.querySelector('.remove').addEventListener('click', ()=>{ tr.remove(); updateIndexes(); renderFormations(); });
-    });
-
-    function updateIndexes(){
-      document.querySelectorAll('#formationList tr.item').forEach((tr,i)=>{ tr.children[0].textContent = i+1; });
+    function setActiveFormation(id){ activeFormationId = id; // highlight in UI
+      document.querySelectorAll('#formationList .table-row').forEach(r=> r.style.background='');
+      const row = document.querySelector(`#formationList .table-row[data-id='${id}']`); if(row) row.style.background='#f8fafc';
     }
 
-    clearBtn.addEventListener('click', ()=>{
-      document.getElementById('patientName').value=''; document.getElementById('fgt').value=''; document.getElementById('bpe').value=''; formationList.innerHTML=''; renderFormations(); reportPreview.textContent='';
+    function renderMarkers(){
+      lesionOverlay.replaceChildren();
+      formations.forEach(f => {
+        f.markers.forEach((m, idx) => {
+          const el = document.createElement('div'); el.className='lesion-marker'; el.style.left = m.x + '%'; el.style.top = m.y + '%'; el.style.width = `${m.size}px`; el.style.height = `${m.size}px`; el.style.borderColor = f.color; el.style.background = `${f.color}1f`; el.dataset.formationId = f.id; el.dataset.markerIndex = idx; 
+          const label = document.createElement('span'); label.className='lesion-label'; label.textContent = `${f.id}.${idx+1}`;
+          const handle = document.createElement('span'); handle.className='lesion-resize-handle'; handle.setAttribute('aria-hidden','true');
+          el.append(label, handle);
+          // pointer events
+          el.addEventListener('pointerdown', markerPointerDown);
+          handle.addEventListener('pointerdown', markerResizeDown);
+          // double click to remove marker
+          el.addEventListener('dblclick', (ev)=>{ ev.stopPropagation(); removeMarker(f.id, idx); });
+          lesionOverlay.append(el);
+        });
+      });
+    }
+
+    function addMarkerAtPoint(xPct,yPct){
+      if(!activeFormationId) { alert('Оберіть утвір (натисніть у списку) перед додаванням маркерів.'); return; }
+      const f = formations.find(x=>x.id===activeFormationId); if(!f) return;
+      f.markers.push({x: xPct, y: yPct, size: 42}); renderMarkers();
+    }
+
+    lesionOverlay.addEventListener('click', (ev)=>{
+      // add marker to active formation
+      const rect = lesionOverlay.getBoundingClientRect();
+      const x = Math.min(100, Math.max(0, ((ev.clientX - rect.left)/rect.width)*100));
+      const y = Math.min(100, Math.max(0, ((ev.clientY - rect.top)/rect.height)*100));
+      addMarkerAtPoint(x,y);
     });
 
-    // Default BI-RADS report template (basic)
-    const defaultReport = `MRI Breast Report\n\nClinical Indication: \n\nTechnique: Bilateral breast MRI performed. (standard protocol with contrast)\n\nFibroglandular Tissue (FGT) Amount:\n- [select]\n\nBackground Parenchymal Enhancement (BPE):\n- [select]\n\nFindings:\n\nRight Breast:\n- [Describe findings using BI-RADS lexicon: mass, non-mass enhancement, focus, location, size, shape, margin, internal enhancement pattern, and kinetics.]\n\nLeft Breast:\n- [Describe findings using BI-RADS lexicon: mass, non-mass enhancement, focus, location, size, shape, margin, internal enhancement pattern, and kinetics.]\n\nAdditional Findings:\n- [Describe lymph nodes, skin, chest wall, implant status, etc., if relevant.]\n\nComparison:\n- [Compare with prior imaging, if available.]\n\nImpression / Final BI-RADS Assessment:\n- BI-RADS Category: 0 / 1 / 2 / 3 / 4 / 5 / 6\n- [Concise summary of key finding(s) and clear management recommendation.]\n\nRecommendation:\n- [E.g., routine screening, short interval follow-up, biopsy, additional imaging, etc.]`;
+    function removeMarker(formationId, markerIndex){
+      const f = formations.find(x=>x.id===formationId); if(!f) return; f.markers.splice(markerIndex,1); renderMarkers();
+    }
 
-    // Initialize preview with default template
+    // pointer move/resize handling
+    function getMarkerTargetFromEvent(el){
+      const marker = el.closest('.lesion-marker'); if(!marker) return null;
+      return {el:marker, formationId: Number(marker.dataset.formationId), markerIndex: Number(marker.dataset.markerIndex)};
+    }
+
+    function markerPointerDown(ev){
+      if(ev.target.classList.contains('lesion-resize-handle')) return; ev.preventDefault(); const t = getMarkerTargetFromEvent(ev.target); if(!t) return;
+      ev.target.setPointerCapture?.(ev.pointerId);
+      activeEdit = {mode:'move', formationId: t.formationId, markerIndex: t.markerIndex, pointerId: ev.pointerId};
+    }
+    function markerResizeDown(ev){ ev.preventDefault(); ev.stopPropagation(); const t = getMarkerTargetFromEvent(ev.target); if(!t) return; const rect = ev.target.getBoundingClientRect(); ev.target.setPointerCapture?.(ev.pointerId); activeEdit = {mode:'resize', formationId:t.formationId, markerIndex:t.markerIndex, startX:ev.clientX, startY:ev.clientY, startSize: Number(document.querySelector(`.lesion-marker[data-formation-id='${t.formationId}'][data-marker-index='${t.markerIndex}']`).offsetWidth), pointerId: ev.pointerId}; }
+
+    function pointerMove(ev){ if(!activeEdit) return; const overlayRect = lesionOverlay.getBoundingClientRect(); const f = formations.find(x=>x.id===activeEdit.formationId); if(!f) return; if(activeEdit.mode==='move'){ const x = Math.min(100, Math.max(0, ((ev.clientX-overlayRect.left)/overlayRect.width)*100)); const y = Math.min(100, Math.max(0, ((ev.clientY-overlayRect.top)/overlayRect.height)*100)); f.markers[activeEdit.markerIndex].x = x; f.markers[activeEdit.markerIndex].y = y; renderMarkers(); } else if(activeEdit.mode==='resize'){ const delta = Math.max(ev.clientX - activeEdit.startX, ev.clientY - activeEdit.startY); const size = Math.min(220, Math.max(12, activeEdit.startSize + delta)); f.markers[activeEdit.markerIndex].size = size; renderMarkers(); } }
+    function pointerUp(ev){ if(activeEdit?.pointerId === ev.pointerId) activeEdit = null; }
+
+    document.addEventListener('pointermove', pointerMove); document.addEventListener('pointerup', pointerUp); document.addEventListener('pointercancel', pointerUp);
+
+    // Save image option exports base image file (no overlay compositing here)
+
+    // Report template and generation
+    const defaultReport = `MRI Breast Report\n\nClinical Indication: —\n\nTechnique: Bilateral breast MRI. (MRI only — no comparison)\n\nPatient: [name]\n\nFibroglandular Tissue (FGT) Amount: [select]\nBackground Parenchymal Enhancement (BPE): [select]\n\nFindings:\n\nRight Breast:\n- [description]\n\nLeft Breast:\n- [description]\n\nFormations:\n- [list]\n\nImpression / Final BI-RADS Assessment:\n- BI-RADS Category: [select]\n- Recommendation: [select]\n`;
     reportPreview.textContent = defaultReport;
 
-    generateReport.addEventListener('click', ()=>{
-      const name = document.getElementById('patientName').value.trim();
-      const fgt = document.getElementById('fgt').value;
-      const bpe = document.getElementById('bpe').value;
-      const formations = Array.from(document.querySelectorAll('#formationList tr.item')).map((tr,i)=>{
-        return `${i+1}. ${tr.querySelector('.form-name').value||'(назва)'} — ${tr.querySelector('.form-location').value||'(локалізація)'}; розміри: ${tr.querySelector('.form-size').value||'—'}`;
-      });
-      let report = `MRI Breast Report\n\nClinical Indication: —\n\nTechnique: Bilateral breast MRI. (MRI only — no comparison)\n\nPatient: ${name || '—'}\n\nFibroglandular Tissue (FGT) Amount: ${fgt||'—'}\nBackground Parenchymal Enhancement (BPE): ${bpe||'—'}\n\nFindings:\n\n`;
-      report += formations.length?('Formations:\n' + formations.join('\n') + '\n\n') : '';
-      report += 'Impression / Final BI-RADS Assessment:\n- BI-RADS Category: [select]\n- Recommendation: [select]\n';
+    generateReportBtn.addEventListener('click', ()=>{
+      const name = document.getElementById('patientName').value.trim() || '—';
+      const fgt = document.getElementById('fgt').value || '—';
+      const bpe = document.getElementById('bpe').value || '—';
+      const formationsText = formations.map(f=>{
+        const markers = f.markers.map((m,i)=>`marker ${i+1}: (${Math.round(m.x)}%, ${Math.round(m.y)}%), size ${Math.round(m.size)}px`).join('; ');
+        return `${f.id}. ${f.name || '(назва)'} — ${markers || 'немає маркерів'}`;
+      }).join('\n');
+      const report = `MRI Breast Report\n\nClinical Indication: —\n\nTechnique: Bilateral breast MRI. (MRI only — no comparison)\n\nPatient: ${name}\n\nFibroglandular Tissue (FGT) Amount: ${fgt}\nBackground Parenchymal Enhancement (BPE): ${bpe}\n\nFindings:\n\n${formationsText || 'немає утворів'}\n\nImpression / Final BI-RADS Assessment:\n- BI-RADS Category: [select]\n- Recommendation: [select]\n`;
       reportPreview.textContent = report;
     });
 
-    // initial render
-    renderFormations();
+    clearBtn.addEventListener('click', ()=>{
+      document.getElementById('patientName').value=''; document.getElementById('fgt').value=''; document.getElementById('bpe').value=''; formations=[]; nextId=1; activeFormationId=null; renderFormations(); reportPreview.textContent = defaultReport;
+    });
+
+    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // initial
+    setSide('right'); renderFormations();
   </script>
 </body>
 </html>
