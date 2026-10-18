@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>BI-RADS — Tulip</title>
+  <link rel="shortcut icon" href="/favicon.ico">
+  <style>
+    :root{--bg:#fff;--panel:#fff;--muted:#6b7280;--ink:#0f172a;--line:#e6edf0}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto; margin:18px; color:var(--ink); background:radial-gradient(circle at 50% 0%,#fff 0,#fbf6f8 40%,#f4f8f5 100%)}
+    a.home{display:inline-block;margin-bottom:12px;color:var(--ink);text-decoration:none}
+    .wrap{max-width:1100px;margin:0 auto}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    .panel{background:var(--panel);border:1px solid var(--line);padding:14px;border-radius:10px}
+    h1{margin:0 0 8px}
+    label{display:block;margin:8px 0;font-weight:600}
+    input[type=text],select,textarea{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:8px;font:inherit}
+    .formations-table{width:100%;border-collapse:collapse}
+    .formations-table th,.formations-table td{border-bottom:1px solid #eef2f7;padding:8px;text-align:left}
+    .btn{display:inline-block;padding:8px 10px;border-radius:8px;border:0;background:#0f172a;color:#fff;cursor:pointer}
+    #breast-iframe{width:100%;height:560px;border:1px solid var(--line);border-radius:8px}
+    .report-preview{white-space:pre-wrap;background:#fff;border:1px solid var(--line);padding:12px;border-radius:8px;min-height:220px}
+    @media (max-width:980px){.grid{grid-template-columns:1fr}#breast-iframe{height:420px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="home" href="/">← Головна</a>
+    <h1>BI-RADS — Формування звіту (MRI, без порівняння)</h1>
+    <p style="color:var(--muted);margin-top:6px">Доступно за /birads — завжди МРТ молочних залоз, без полів «Показання» і «Методика». Розміри грудей не вводяться.</p>
+
+    <div class="grid" role="application">
+      <div>
+        <div class="panel" aria-label="Схема грудних залоз">
+          <h2>Схема грудних залоз</h2>
+          <!-- Вбудовано як iframe на існуючу сторінку зі схемою -->
+          <iframe id="breast-iframe" src="https://oleksandrmulyar.github.io/breast/" title="Схема грудних залоз"></iframe>
+          <p style="color:var(--muted);font-size:.9rem;margin-top:8px">Схема з зовнішнього ресурсу; позначайте знахідки на схемі та в таблиці «Утворення».</p>
+        </div>
+
+        <div class="panel" style="margin-top:12px" aria-label="Опитувальник">
+          <h2>Опитувальник</h2>
+          <label>ПІБ пацієнтки
+            <input id="patientName" type="text" placeholder="Прізвище Ім'я По-батькові">
+          </label>
+
+          <label>Фіброгландулярна тканина (FGT)
+            <select id="fgt">
+              <option value="">(не вказано)</option>
+              <option>Almost entirely fatty</option>
+              <option>Scattered fibroglandular tissue</option>
+              <option>Heterogeneous fibroglandular tissue</option>
+              <option>Extreme fibroglandular tissue</option>
+            </select>
+          </label>
+
+          <label>Background Parenchymal Enhancement (BPE)
+            <select id="bpe">
+              <option value="">(не вказано)</option>
+              <option>Minimal</option>
+              <option>Mild</option>
+              <option>Moderate</option>
+              <option>Marked</option>
+            </select>
+          </label>
+
+          <label style="margin-top:10px">Утворення
+            <table class="formations-table" aria-describedby="formations-desc">
+              <thead><tr><th style="width:6%">#</th><th>Назва</th><th>Локалізація</th><th style="width:18%">Розміри, мм</th><th>Дії</th></tr></thead>
+              <tbody id="formationList"><tr><td colspan="5" style="color:var(--muted);padding:12px">Немає утворень</td></tr></tbody>
+            </table>
+          </label>
+          <div style="margin-top:8px"><button id="addFormation" class="btn" type="button">+ Додати утвір</button></div>
+
+        </div>
+
+      </div>
+
+      <aside>
+        <div class="panel" aria-label="Керування">
+          <h2>Керування</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button id="generateReport" class="btn" type="button">Сформувати звіт</button>
+            <button id="clearBtn" class="btn" type="button" style="background:#6b7280">Очистити</button>
+          </div>
+
+          <div style="margin-top:12px">
+            <h3>Попередній текст звіту</h3>
+            <div id="reportPreview" class="report-preview" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <h3>Пояснення</h3>
+          <p style="color:var(--muted);font-size:.95rem">Це спрощена сторінка для BI-RADS MRI: показання і методика не збираються, розміри грудей не вводяться. Для складніших опцій відкрийте повний інструмент.</p>
+        </div>
+      </aside>
+    </div>
+
+  </div>
+
+  <script>
+    const formationList = document.getElementById('formationList');
+    const addFormation = document.getElementById('addFormation');
+    const generateReport = document.getElementById('generateReport');
+    const clearBtn = document.getElementById('clearBtn');
+    const reportPreview = document.getElementById('reportPreview');
+
+    function renderFormations(){
+      const rows = formationList.querySelectorAll('tr.item');
+      if(rows.length===0){ formationList.innerHTML='<tr><td colspan="5" style="color:var(--muted);padding:12px">Немає утворень</td></tr>'; return; }
+    }
+
+    addFormation.addEventListener('click', ()=>{
+      const index = formationList.querySelectorAll('tr.item').length + 1;
+      const tr = document.createElement('tr'); tr.className='item';
+      tr.innerHTML = `<td>${index}</td>
+        <td><input type="text" class="form-name" placeholder="Назва (наприклад: вузол)"></td>
+        <td><input type="text" class="form-location" placeholder="ліва/права/грудь, сектор"></td>
+        <td><input type="text" class="form-size" placeholder="TR×AP×CC або Ø"></td>
+        <td><button class="btn remove" type="button" style="background:#ef4444">Видалити</button></td>`;
+      formationList.appendChild(tr);
+      renderFormations();
+      tr.querySelector('.remove').addEventListener('click', ()=>{ tr.remove(); updateIndexes(); renderFormations(); });
+    });
+
+    function updateIndexes(){
+      document.querySelectorAll('#formationList tr.item').forEach((tr,i)=>{ tr.children[0].textContent = i+1; });
+    }
+
+    clearBtn.addEventListener('click', ()=>{
+      document.getElementById('patientName').value=''; document.getElementById('fgt').value=''; document.getElementById('bpe').value=''; formationList.innerHTML=''; renderFormations(); reportPreview.textContent='';
+    });
+
+    // Default BI-RADS report template (basic)
+    const defaultReport = `MRI Breast Report\n\nClinical Indication: \n\nTechnique: Bilateral breast MRI performed. (standard protocol with contrast)\n\nFibroglandular Tissue (FGT) Amount:\n- [select]\n\nBackground Parenchymal Enhancement (BPE):\n- [select]\n\nFindings:\n\nRight Breast:\n- [Describe findings using BI-RADS lexicon: mass, non-mass enhancement, focus, location, size, shape, margin, internal enhancement pattern, and kinetics.]\n\nLeft Breast:\n- [Describe findings using BI-RADS lexicon: mass, non-mass enhancement, focus, location, size, shape, margin, internal enhancement pattern, and kinetics.]\n\nAdditional Findings:\n- [Describe lymph nodes, skin, chest wall, implant status, etc., if relevant.]\n\nComparison:\n- [Compare with prior imaging, if available.]\n\nImpression / Final BI-RADS Assessment:\n- BI-RADS Category: 0 / 1 / 2 / 3 / 4 / 5 / 6\n- [Concise summary of key finding(s) and clear management recommendation.]\n\nRecommendation:\n- [E.g., routine screening, short interval follow-up, biopsy, additional imaging, etc.]`;
+
+    // Initialize preview with default template
+    reportPreview.textContent = defaultReport;
+
+    generateReport.addEventListener('click', ()=>{
+      const name = document.getElementById('patientName').value.trim();
+      const fgt = document.getElementById('fgt').value;
+      const bpe = document.getElementById('bpe').value;
+      const formations = Array.from(document.querySelectorAll('#formationList tr.item')).map((tr,i)=>{
+        return `${i+1}. ${tr.querySelector('.form-name').value||'(назва)'} — ${tr.querySelector('.form-location').value||'(локалізація)'}; розміри: ${tr.querySelector('.form-size').value||'—'}`;
+      });
+      let report = `MRI Breast Report\n\nClinical Indication: —\n\nTechnique: Bilateral breast MRI. (MRI only — no comparison)\n\nPatient: ${name || '—'}\n\nFibroglandular Tissue (FGT) Amount: ${fgt||'—'}\nBackground Parenchymal Enhancement (BPE): ${bpe||'—'}\n\nFindings:\n\n`;
+      report += formations.length?('Formations:\n' + formations.join('\n') + '\n\n') : '';
+      report += 'Impression / Final BI-RADS Assessment:\n- BI-RADS Category: [select]\n- Recommendation: [select]\n';
+      reportPreview.textContent = report;
+    });
+
+    // initial render
+    renderFormations();
+  </script>
+</body>
+</html>
