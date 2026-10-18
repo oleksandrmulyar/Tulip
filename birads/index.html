@@ -331,6 +331,7 @@
           <div class="action-row">
             <button id="savePrimary" class="save-button" type="button">Зберегти зображення</button>
             <button id="addLesion" class="action-button" type="button">+ Додати утвір</button>
+            <button id="saveComposite" class="action-button" type="button">Зберегти (з маркерами)</button>
           </div>
         </div>
 
@@ -391,11 +392,13 @@
     const breastImages = {
       right: {
         src: 'https://raw.githubusercontent.com/oleksandrmulyar/breast/main/right-breast.jpg',
-        label: 'права грудна залоза'
+        label: 'права грудна залоза',
+        defaultMarkers: [ { x: 30, y: 50 }, { x: 79, y: 50 } ]
       },
       left: {
         src: 'https://raw.githubusercontent.com/oleksandrmulyar/breast/main/left-breast.jpg',
-        label: 'ліва грудна залоза'
+        label: 'ліва грудна залоза',
+        defaultMarkers: [ { x: 30, y: 50 }, { x: 79, y: 50 } ]
       }
     };
 
@@ -451,11 +454,13 @@
     }
 
     function addLesion() {
+      const id = nextLesionId++;
+      const defaultMarkers = (breastImages[activeSide] && breastImages[activeSide].defaultMarkers) || [];
       const lesion = {
-        id: nextLesionId++,
+        id,
         name: '',
-        color: lesionColors[(nextLesionId - 2) % lesionColors.length],
-        markers: []
+        color: lesionColors[(id - 1) % lesionColors.length],
+        markers: defaultMarkers.map((p) => ({ x: p.x, y: p.y, size: 42 }))
       };
       lesions.push(lesion);
       activeLesionId = lesion.id;
@@ -645,6 +650,7 @@
       }
     }
 
+    // save base image only (kept for compatibility)
     function saveImage() {
       fetch(breastImages[activeSide].src)
         .then((response) => response.blob())
@@ -659,6 +665,64 @@
           URL.revokeObjectURL(url);
         })
         .catch(() => {});
+    }
+
+    // composite export: base image + markers drawn on canvas
+    function saveCompositeImage() {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = breastImages[activeSide].src;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // draw markers for all lesions
+        lesions.forEach((lesion) => {
+          lesion.markers.forEach((marker, idx) => {
+            const x = (marker.x / 100) * canvas.width;
+            const y = (marker.y / 100) * canvas.height;
+            const r = (marker.size / 42) * (canvas.width * 0.06); // scale relative to image
+            // fallback radius: use marker.size scaled to image width
+            const radius = Math.max(6, marker.size * (canvas.width / Math.max(600, canvas.width)) / 2);
+
+            // stroke and fill
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = lesion.color + '33';
+            ctx.fill();
+            ctx.lineWidth = Math.max(2, Math.round(radius * 0.18));
+            ctx.strokeStyle = lesion.color;
+            ctx.stroke();
+
+            // label
+            ctx.font = `${Math.max(14, Math.round(radius))}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            // text shadow
+            ctx.fillStyle = '#000';
+            ctx.globalAlpha = 0.6;
+            ctx.fillText(`${lesion.id}.${idx + 1}`, x + 1, y + 1);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = '#fff';
+            ctx.fillText(`${lesion.id}.${idx + 1}`, x, y);
+          });
+        });
+
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${breastImages[activeSide].label}-with-markers.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }, 'image/png');
+      };
+      img.onerror = () => { alert('Не вдалося завантажити зображення для експорту'); };
     }
 
     function buildReportText() {
@@ -706,6 +770,7 @@
     document.getElementById('addLesion').addEventListener('click', addLesion);
     document.getElementById('addLesionSmall').addEventListener('click', addLesion);
     document.getElementById('savePrimary').addEventListener('click', saveImage);
+    document.getElementById('saveComposite').addEventListener('click', saveCompositeImage);
     document.getElementById('generateReport').addEventListener('click', generateReport);
     document.getElementById('clearAll').addEventListener('click', clearAll);
 
