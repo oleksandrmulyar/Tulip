@@ -1,284 +1,732 @@
 <!doctype html>
 <html lang="uk">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BI-RADS — Tulip</title>
-  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="shortcut icon" href="/favicon.ico" />
   <style>
-    :root{--bg:#f7faf7;--panel:#fff;--muted:#6b7280;--ink:#0f172a;--line:#e6edf0}
-    *{box-sizing:border-box}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:18px;color:var(--ink);background:radial-gradient(circle at 50% 0%,#fff 0,#fbf6f8 40%,#f4f8f5 100%)}
-    a.home{display:inline-block;margin-bottom:12px;color:var(--ink);text-decoration:none}
-    .wrap{max-width:1200px;margin:0 auto}
-    h1{margin:0 0 8px}
-    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
-    .panel{background:var(--panel);border:1px solid var(--line);padding:14px;border-radius:10px}
-    label{display:block;margin:8px 0;font-weight:600}
-    input[type=text],select,textarea{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:8px;font:inherit}
+    :root {
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --muted: #5f6675;
+      --line: #dfe3ea;
+      --table: #f2f4f7;
+      --danger: #dc2626;
+    }
 
-    /* breast styles adapted */
-    .choice-grid{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:18px}
-    .choice-card{display:grid;gap:16px;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);cursor:pointer;place-items:center}
-    .choice-card img{width:100%;max-height:240px;object-fit:contain}
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #ffffff 0%, #f4f7f5 100%);
+    }
+    button, input, select { font: inherit; }
+    a.home-link {
+      display: inline-block;
+      margin: 18px 0 12px 18px;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .app {
+      width: min(1280px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 0 0 48px;
+    }
+    h1 {
+      margin: 0 0 22px;
+      font-size: 30px;
+      line-height: 1.2;
+      font-weight: 800;
+    }
+    h2 { margin: 0 0 10px; font-size: 22px; }
+    .subtext {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 18px;
+    }
 
-    .image-stage{position:relative;width:100%;}
-    .image-stage img{display:block;width:100%;max-height:560px;object-fit:contain}
-    .lesion-overlay{position:absolute;inset:0;pointer-events:auto}
-    .lesion-marker{position:absolute;display:inline-grid;padding:0;place-items:center;border:3px solid;border-radius:50%;cursor:grab;font-size:13px;font-weight:800;line-height:1;touch-action:none;user-select:none;box-shadow:0 4px 12px rgba(15,23,42,.18);transform:translate(-50%,-50%)}
-    .lesion-label{pointer-events:none;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
-    .lesion-resize-handle{position:absolute;right:-8px;bottom:-8px;width:14px;height:14px;border:2px solid #fff;border-radius:50%;background:currentColor;cursor:nwse-resize}
+    .selection-view {
+      padding-top: 0;
+    }
+    .choice-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(260px, 420px));
+      gap: 28px;
+    }
+    .choice-card {
+      display: grid;
+      gap: 18px;
+      min-height: 360px;
+      padding: 24px 20px 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--card);
+      color: var(--ink);
+      cursor: pointer;
+      place-items: center;
+      transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+    .choice-card:hover,
+    .choice-card:focus-visible {
+      border-color: #b9c0cc;
+      box-shadow: 0 12px 26px rgba(15, 23, 42, .08);
+      transform: translateY(-2px);
+      outline: none;
+    }
+    .choice-card img {
+      width: 100%;
+      max-height: 260px;
+      object-fit: contain;
+    }
+    .choice-card span {
+      font-size: 18px;
+      line-height: 1.25;
+      font-weight: 800;
+      text-align: center;
+    }
 
-    .table-shell{overflow-x:auto;border-radius:6px}
-    .table-row{display:grid;grid-template-columns:80px 1fr 110px;gap:12px;align-items:center;min-width:420px;padding:10px}
-    .table-header{background:#f2f4f7;font-weight:800}
-    .table-body-row{border-top:1px solid var(--line);background:#fff}
+    .detail-view { padding-top: 0; }
+    .back-button {
+      margin: 0 0 12px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: minmax(360px, 1.5fr) minmax(280px, 0.9fr);
+      gap: 20px;
+      align-items: start;
+    }
 
-    .btn{display:inline-block;padding:8px 10px;border-radius:8px;border:0;background:#0f172a;color:#fff;cursor:pointer}
-    .btn.ghost{background:#6b7280}
-    .report-preview{white-space:pre-wrap;background:#fff;border:1px solid var(--line);padding:12px;border-radius:8px;min-height:220px}
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--card);
+    }
+    .image-card {
+      display: flex;
+      min-height: 640px;
+      padding: 20px 14px 14px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .image-stage {
+      position: relative;
+      width: 100%;
+      min-height: 520px;
+      display: grid;
+      place-items: center;
+    }
+    .image-stage img {
+      display: block;
+      width: 100%;
+      max-height: 520px;
+      object-fit: contain;
+    }
+    .lesion-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: auto;
+    }
+    .lesion-marker {
+      position: absolute;
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+      border-radius: 50%;
+      border: 3px solid;
+      cursor: grab;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+      touch-action: none;
+      user-select: none;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, .18);
+      transform: translate(-50%, -50%);
+    }
+    .lesion-label {
+      pointer-events: none;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,.35);
+    }
+    .lesion-resize-handle {
+      position: absolute;
+      right: -8px;
+      bottom: -8px;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: currentColor;
+      cursor: nwse-resize;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, .25);
+    }
+    .save-button,
+    .action-button,
+    .mini-btn {
+      cursor: pointer;
+    }
+    .save-button,
+    .action-button {
+      padding: 8px 12px;
+      border: 1px solid #cdd2da;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .action-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
 
-    @media (max-width:980px){.grid{grid-template-columns:1fr}.choice-grid{grid-template-columns:1fr}.image-stage img{max-height:420px}}
+    .sidebar-panel {
+      padding: 12px;
+    }
+    .lesion-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .mini-btn {
+      width: 30px;
+      height: 30px;
+      border: 1px solid #cdd2da;
+      border-radius: 50%;
+      background: #fff;
+      color: var(--ink);
+      font-size: 22px;
+      line-height: 1;
+    }
+    .mini-btn.danger {
+      border-color: #f5c2c7;
+      color: var(--danger);
+      background: #fff5f5;
+    }
+    .table-shell {
+      overflow-x: auto;
+      border-radius: 6px;
+    }
+    .lesion-row {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr) 70px 34px;
+      gap: 8px;
+      align-items: center;
+      min-width: 300px;
+      padding: 8px 10px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+    .lesion-row.active {
+      background: #f8fafc;
+    }
+    .lesion-row:first-child { border-top: 0; }
+    .lesion-row input[type="text"] {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #cdd2da;
+      border-radius: 4px;
+      color: var(--ink);
+    }
+    .lesion-row input[type="color"] {
+      width: 100%;
+      min-height: 32px;
+      padding: 2px;
+      border: 1px solid #cdd2da;
+      border-radius: 4px;
+      background: #fff;
+    }
+    .empty-state {
+      padding: 12px;
+      color: var(--muted);
+    }
+
+    .form-panel {
+      padding: 12px;
+      margin-top: 16px;
+    }
+    label.field {
+      display: block;
+      margin: 10px 0;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    label.field input,
+    label.field select,
+    label.field textarea {
+      width: 100%;
+      margin-top: 6px;
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      color: var(--ink);
+      background: #fff;
+    }
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+    .report-preview {
+      margin-top: 12px;
+      white-space: pre-wrap;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 240px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 900px) {
+      .app { width: min(100% - 24px, 1280px); }
+      .choice-grid { grid-template-columns: 1fr; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .image-card { min-height: 420px; }
+      .image-stage { min-height: 360px; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <a class="home" href="/">← Головна</a>
-    <h1>BI-RADS — Формування звіту (MRI, без порівняння)</h1>
-    <p style="color:var(--muted);margin-top:6px">Доступно за /birads — завжди МРТ молочних залоз. Показання і методика не збираються. Розміри грудних залоз не вводяться. Автопозиціювання утворів відключено.</p>
+  <a class="home-link" href="/" aria-label="Повернутися на головну">← Головна</a>
 
-    <div class="grid" role="application">
-      <div>
-        <div class="panel" aria-label="Оберіть грудну залозу">
-          <h2>Оберіть грудну залозу</h2>
-          <div class="choice-grid" id="sideSelection">
-            <button class="choice-card" type="button" data-side="right">
-              <img src="https://raw.githubusercontent.com/oleksandrmulyar/breast/main/right-breast.jpg" alt="Права грудна залоза">
-              <span>Права грудна залоза</span>
-            </button>
-            <button class="choice-card" type="button" data-side="left">
-              <img src="https://raw.githubusercontent.com/oleksandrmulyar/breast/main/left-breast.jpg" alt="Ліва грудна залоза">
-              <span>Ліва грудна залоза</span>
-            </button>
-          </div>
-        </div>
+  <main class="app">
+    <section id="sideSelection" class="selection-view" aria-labelledby="selectionTitle">
+      <h1 id="selectionTitle">Оберіть грудну залозу</h1>
+      <div class="choice-grid" role="list">
+        <button class="choice-card" type="button" data-side="right" role="listitem">
+          <img src="https://raw.githubusercontent.com/oleksandrmulyar/breast/main/right-breast.jpg" alt="Права грудна залоза" />
+          <span>Права<br />грудна залоза</span>
+        </button>
+        <button class="choice-card" type="button" data-side="left" role="listitem">
+          <img src="https://raw.githubusercontent.com/oleksandrmulyar/breast/main/left-breast.jpg" alt="Ліва грудна залоза" />
+          <span>Ліва<br />грудна залоза</span>
+        </button>
+      </div>
+    </section>
 
-        <div class="panel" style="margin-top:12px" aria-label="Схема">
-          <h2>Схема — позначення утворів</h2>
-          <div class="image-stage panel" id="detailView">
-            <img id="primaryImage" src="https://raw.githubusercontent.com/oleksandrmulyar/breast/main/right-breast.jpg" alt="Обрана грудна залоза">
+    <section id="detailView" class="detail-view" hidden aria-labelledby="detailTitle">
+      <button id="backToSelection" class="back-button" type="button">← Назад до вибору</button>
+      <h1 id="detailTitle" style="display:none;">Вибір грудної залози</h1>
+
+      <div class="detail-grid">
+        <div class="panel image-card">
+          <div class="image-stage">
+            <img id="primaryImage" src="https://raw.githubusercontent.com/oleksandrmulyar/breast/main/right-breast.jpg" alt="Обрана грудна залоза" />
             <div id="lesionOverlay" class="lesion-overlay" aria-live="polite"></div>
           </div>
-          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-            <button id="saveImage" class="btn" type="button">Зберегти зображення</button>
-            <button id="addFormation" class="btn" type="button">+ Додати утвір</button>
-            <div style="margin-left:auto;color:var(--muted)">Клік на зображенні додає маркер до вибраного утвору</div>
+          <div class="action-row">
+            <button id="savePrimary" class="save-button" type="button">Зберегти зображення</button>
+            <button id="addLesion" class="action-button" type="button">+ Додати утвір</button>
           </div>
         </div>
 
-        <div class="panel" style="margin-top:12px" aria-label="Опитувальник">
-          <h2>Опитувальник</h2>
-          <label>ПІБ пацієнтки
-            <input id="patientName" type="text" placeholder="Прізвище Ім'я По-батькові">
-          </label>
-
-          <label>Фіброгландулярна тканина (FGT)
-            <select id="fgt">
-              <option value="">(не вказано)</option>
-              <option>Almost entirely fatty</option>
-              <option>Scattered fibroglandular tissue</option>
-              <option>Heterogeneous fibroglandular tissue</option>
-              <option>Extreme fibroglandular tissue</option>
-            </select>
-          </label>
-
-          <label>Background Parenchymal Enhancement (BPE)
-            <select id="bpe">
-              <option value="">(не вказано)</option>
-              <option>Minimal</option>
-              <option>Mild</option>
-              <option>Moderate</option>
-              <option>Marked</option>
-            </select>
-          </label>
-        </div>
-
+        <aside class="panel sidebar-panel">
+          <div class="lesion-header">
+            <h2>Утвори</h2>
+            <button id="addLesionSmall" class="mini-btn" type="button" aria-label="Додати утвір">+</button>
+          </div>
+          <div id="lesionList" class="table-shell" aria-live="polite"></div>
+        </aside>
       </div>
 
-      <aside>
-        <div class="panel" aria-label="Утвори та керування">
-          <h2>Утвори</h2>
-          <div class="table-shell" style="margin-top:8px">
-            <div class="table-row table-header">
-              <span>№</span><span>Назва / Примітки</span><span>Колір</span>
-            </div>
-            <div id="formationList"></div>
-          </div>
+      <div class="panel form-panel" aria-label="Опитувальник і шаблон звіту">
+        <h2>Опитувальник</h2>
 
-          <div style="margin-top:12px;display:flex;gap:8px">
-            <button id="generateReport" class="btn">Сформувати звіт</button>
-            <button id="clearBtn" class="btn ghost">Очистити</button>
-          </div>
+        <label class="field">ПІБ пацієнтки
+          <input id="patientName" type="text" placeholder="Прізвище Ім'я По-батькові" />
+        </label>
 
-          <div style="margin-top:12px">
-            <h3>Попередній текст звіту</h3>
-            <div id="reportPreview" class="report-preview" aria-live="polite"></div>
-          </div>
+        <label class="field">Фіброгландулярна тканина (FGT)
+          <select id="fgt">
+            <option value="">(не вказано)</option>
+            <option>Almost entirely fatty</option>
+            <option>Scattered fibroglandular tissue</option>
+            <option>Heterogeneous fibroglandular tissue</option>
+            <option>Extreme fibroglandular tissue</option>
+          </select>
+        </label>
+
+        <label class="field">Background Parenchymal Enhancement (BPE)
+          <select id="bpe">
+            <option value="">(не вказано)</option>
+            <option>Minimal</option>
+            <option>Mild</option>
+            <option>Moderate</option>
+            <option>Marked</option>
+          </select>
+        </label>
+
+        <label class="field">Коментар до знахідок
+          <textarea id="findingsNote" placeholder="Наприклад: обмежений фокус ..."></textarea>
+        </label>
+
+        <div class="action-row" style="margin-top: 16px;">
+          <button id="generateReport" class="action-button" type="button">Сформувати звіт</button>
+          <button id="clearAll" class="action-button" type="button">Очистити</button>
         </div>
 
-        <div class="panel" style="margin-top:12px">
-          <h3>Пояснення</h3>
-          <p style="color:var(--muted);font-size:.95rem">Функціонал: додавання утворів, призначення назви і кольору, додавання маркерів кликом на схемі (ручне позиціювання), перетягування і зміна розміру маркерів, збереження зображення, генерація тексту звіту.</p>
+        <div>
+          <h2 style="margin-top: 18px;">Попередній текст звіту</h2>
+          <div id="reportPreview" class="report-preview" aria-live="polite"></div>
         </div>
-      </aside>
-    </div>
-
-  </div>
+      </div>
+    </section>
+  </main>
 
   <script>
-    // Adapted behavior from breast app.js with auto-positioning removed.
-    const images = {
-      right: 'https://raw.githubusercontent.com/oleksandrmulyar/breast/main/right-breast.jpg',
-      left: 'https://raw.githubusercontent.com/oleksandrmulyar/breast/main/left-breast.jpg'
+    const breastImages = {
+      right: {
+        src: 'https://raw.githubusercontent.com/oleksandrmulyar/breast/main/right-breast.jpg',
+        label: 'права грудна залоза'
+      },
+      left: {
+        src: 'https://raw.githubusercontent.com/oleksandrmulyar/breast/main/left-breast.jpg',
+        label: 'ліва грудна залоза'
+      }
     };
-    const lesionColors = ['#f13d3d','#1d9bf0','#18a058','#f59e0b','#8b5cf6','#ec4899'];
 
-    const sideButtons = document.querySelectorAll('.choice-card');
+    const lesionColors = ['#f13d3d', '#1d9bf0', '#18a058', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+    const sideSelection = document.getElementById('sideSelection');
+    const detailView = document.getElementById('detailView');
     const primaryImage = document.getElementById('primaryImage');
     const lesionOverlay = document.getElementById('lesionOverlay');
-    const addFormationBtn = document.getElementById('addFormation');
-    const formationList = document.getElementById('formationList');
-    const saveImageBtn = document.getElementById('saveImage');
-    const generateReportBtn = document.getElementById('generateReport');
-    const clearBtn = document.getElementById('clearBtn');
+    const lesionList = document.getElementById('lesionList');
+    const patientNameInput = document.getElementById('patientName');
+    const fgtSelect = document.getElementById('fgt');
+    const bpeSelect = document.getElementById('bpe');
+    const findingsNoteInput = document.getElementById('findingsNote');
     const reportPreview = document.getElementById('reportPreview');
 
     let activeSide = 'right';
-    let formations = []; // {id,name,color,markers:[{x,y,size}]}
-    let nextId = 1;
-    let activeEdit = null; // for pointer actions
-    let activeFormationId = null; // which formation is selected for marker adding
+    let lesions = [];
+    let nextLesionId = 1;
+    let activeLesionId = null;
+    let activeEdit = null;
 
-    function setSide(side){
-      activeSide = side; primaryImage.src = images[side]; renderMarkers();
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
     }
-    sideButtons.forEach(btn => btn.addEventListener('click', ()=> setSide(btn.dataset.side)));
 
-    function saveImage(){
-      // simple download of image file
-      fetch(images[activeSide]).then(r=>r.blob()).then(blob=>{
-        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${activeSide}-breast.jpg`; document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-      });
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
-    saveImageBtn.addEventListener('click', saveImage);
 
-    function addFormation(){
-      const id = nextId++;
-      const formation = {id, name:'', color: lesionColors[(id-1)%lesionColors.length], markers: []};
-      formations.push(formation); renderFormations();
-      setActiveFormation(id);
+    function openDetail(side) {
+      activeSide = side;
+      sideSelection.hidden = true;
+      detailView.hidden = false;
+      primaryImage.src = breastImages[side].src;
+      primaryImage.alt = breastImages[side].label;
+      renderLesions();
     }
-    addFormationBtn.addEventListener('click', addFormation);
 
-    function renderFormations(){
-      formationList.innerHTML = '';
-      if(formations.length===0){ formationList.innerHTML = '<div class="table-row table-body-row" style="color:var(--muted);padding:12px">Немає утворень</div>'; return; }
-      formations.forEach((f,i)=>{
-        const row = document.createElement('div'); row.className='table-row table-body-row'; row.dataset.id = f.id;
-        row.innerHTML = `<span>${f.id}</span><span><input class="fname" type="text" placeholder="Назва утвору" value="${escapeHtml(f.name)}"></span><span><input type="color" class="fcolor" value="${f.color}"></span>`;
-        formationList.append(row);
-        row.querySelector('.fname').addEventListener('input', (e)=>{ f.name = e.target.value; });
-        row.querySelector('.fcolor').addEventListener('input', (e)=>{ f.color = e.target.value; renderMarkers(); });
-        row.addEventListener('click', ()=> setActiveFormation(f.id));
-      });
+    function backToSelection() {
+      sideSelection.hidden = false;
+      detailView.hidden = true;
+    }
+
+    function setActiveLesion(id) {
+      activeLesionId = id;
+      renderLesions();
+    }
+
+    function addLesion() {
+      const lesion = {
+        id: nextLesionId++,
+        name: '',
+        color: lesionColors[(nextLesionId - 2) % lesionColors.length],
+        markers: []
+      };
+      lesions.push(lesion);
+      activeLesionId = lesion.id;
+      renderLesions();
+    }
+
+    function removeLesion(id) {
+      lesions = lesions.filter((lesion) => lesion.id !== id);
+      if (activeLesionId === id) {
+        activeLesionId = lesions.length ? lesions[0].id : null;
+      }
+      renderLesions();
+    }
+
+    function addMarker(lesionId, xPercent, yPercent) {
+      const lesion = lesions.find((item) => item.id === lesionId);
+      if (!lesion) return;
+      lesion.markers.push({ x: xPercent, y: yPercent, size: 42 });
       renderMarkers();
     }
 
-    function setActiveFormation(id){ activeFormationId = id; // highlight in UI
-      document.querySelectorAll('#formationList .table-row').forEach(r=> r.style.background='');
-      const row = document.querySelector(`#formationList .table-row[data-id='${id}']`); if(row) row.style.background='#f8fafc';
+    function removeMarker(lesionId, markerIndex) {
+      const lesion = lesions.find((item) => item.id === lesionId);
+      if (!lesion) return;
+      lesion.markers.splice(markerIndex, 1);
+      renderMarkers();
     }
 
-    function renderMarkers(){
+    function renderLesions() {
+      lesionList.innerHTML = '';
+      if (!lesions.length) {
+        lesionList.innerHTML = '<div class="empty-state">Немає утворів. Натисніть +, щоб додати.</div>';
+        renderMarkers();
+        return;
+      }
+
+      lesions.forEach((lesion, index) => {
+        const row = document.createElement('div');
+        row.className = `lesion-row${lesion.id === activeLesionId ? ' active' : ''}`;
+        row.dataset.id = String(lesion.id);
+        row.innerHTML = `
+          <span>${index + 1}</span>
+          <input type="text" data-role="name" value="${escapeHtml(lesion.name)}" placeholder="Назва утвору" />
+          <input type="color" data-role="color" value="${lesion.color}" aria-label="Колір утвору ${index + 1}" />
+          <button type="button" data-role="delete" class="mini-btn danger" aria-label="Видалити утвір ${index + 1}">×</button>
+        `;
+
+        row.addEventListener('click', (event) => {
+          if (event.target.closest('input') || event.target.closest('button')) return;
+          setActiveLesion(lesion.id);
+        });
+
+        const nameInput = row.querySelector('[data-role="name"]');
+        nameInput.addEventListener('input', (event) => {
+          lesion.name = event.target.value;
+        });
+
+        const colorInput = row.querySelector('[data-role="color"]');
+        colorInput.addEventListener('input', (event) => {
+          lesion.color = event.target.value;
+          renderMarkers();
+        });
+
+        const deleteBtn = row.querySelector('[data-role="delete"]');
+        deleteBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          removeLesion(lesion.id);
+        });
+
+        lesionList.appendChild(row);
+      });
+
+      renderMarkers();
+    }
+
+    function renderMarkers() {
       lesionOverlay.replaceChildren();
-      formations.forEach(f => {
-        f.markers.forEach((m, idx) => {
-          const el = document.createElement('div'); el.className='lesion-marker'; el.style.left = m.x + '%'; el.style.top = m.y + '%'; el.style.width = `${m.size}px`; el.style.height = `${m.size}px`; el.style.borderColor = f.color; el.style.background = `${f.color}1f`; el.dataset.formationId = f.id; el.dataset.markerIndex = idx; 
-          const label = document.createElement('span'); label.className='lesion-label'; label.textContent = `${f.id}.${idx+1}`;
-          const handle = document.createElement('span'); handle.className='lesion-resize-handle'; handle.setAttribute('aria-hidden','true');
-          el.append(label, handle);
-          // pointer events
-          el.addEventListener('pointerdown', markerPointerDown);
-          handle.addEventListener('pointerdown', markerResizeDown);
-          // double click to remove marker
-          el.addEventListener('dblclick', (ev)=>{ ev.stopPropagation(); removeMarker(f.id, idx); });
-          lesionOverlay.append(el);
+
+      lesions.forEach((lesion) => {
+        lesion.markers.forEach((marker, markerIndex) => {
+          const markerEl = document.createElement('div');
+          markerEl.className = 'lesion-marker';
+          markerEl.dataset.lesionId = String(lesion.id);
+          markerEl.dataset.markerIndex = String(markerIndex);
+          markerEl.style.left = `${marker.x}%`;
+          markerEl.style.top = `${marker.y}%`;
+          markerEl.style.width = `${marker.size}px`;
+          markerEl.style.height = `${marker.size}px`;
+          markerEl.style.borderColor = lesion.color;
+          markerEl.style.background = `${lesion.color}1f`;
+          markerEl.style.color = lesion.color;
+
+          const label = document.createElement('span');
+          label.className = 'lesion-label';
+          label.textContent = `${lesion.id}.${markerIndex + 1}`;
+
+          const handle = document.createElement('span');
+          handle.className = 'lesion-resize-handle';
+          handle.setAttribute('aria-hidden', 'true');
+
+          markerEl.append(label, handle);
+          markerEl.addEventListener('pointerdown', startMarkerMove);
+          handle.addEventListener('pointerdown', startMarkerResize);
+          markerEl.addEventListener('dblclick', (event) => {
+            event.stopPropagation();
+            removeMarker(lesion.id, markerIndex);
+          });
+
+          lesionOverlay.appendChild(markerEl);
         });
       });
     }
 
-    function addMarkerAtPoint(xPct,yPct){
-      if(!activeFormationId) { alert('Оберіть утвір (натисніть у списку) перед додаванням маркерів.'); return; }
-      const f = formations.find(x=>x.id===activeFormationId); if(!f) return;
-      f.markers.push({x: xPct, y: yPct, size: 42}); renderMarkers();
+    function getMarkerTarget(event) {
+      const marker = event.target.closest('.lesion-marker');
+      if (!marker) return null;
+      return {
+        lesionId: Number(marker.dataset.lesionId),
+        markerIndex: Number(marker.dataset.markerIndex),
+        element: marker
+      };
     }
 
-    lesionOverlay.addEventListener('click', (ev)=>{
-      // add marker to active formation
+    function startMarkerMove(event) {
+      if (event.target.classList.contains('lesion-resize-handle')) return;
+      event.preventDefault();
+      const target = getMarkerTarget(event);
+      if (!target) return;
+      target.element.setPointerCapture(event.pointerId);
+      activeEdit = {
+        pointerId: event.pointerId,
+        mode: 'move',
+        lesionId: target.lesionId,
+        markerIndex: target.markerIndex
+      };
+    }
+
+    function startMarkerResize(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      const target = getMarkerTarget(event);
+      if (!target) return;
+      const rect = target.element.getBoundingClientRect();
+      target.element.setPointerCapture(event.pointerId);
+      activeEdit = {
+        pointerId: event.pointerId,
+        mode: 'resize',
+        lesionId: target.lesionId,
+        markerIndex: target.markerIndex,
+        startX: event.clientX,
+        startY: event.clientY,
+        startSize: rect.width
+      };
+    }
+
+    function pointerMove(event) {
+      if (!activeEdit) return;
+
+      const lesion = lesions.find((item) => item.id === activeEdit.lesionId);
+      if (!lesion) return;
+
+      const marker = lesion.markers[activeEdit.markerIndex];
+      if (!marker) return;
+
+      const overlayRect = lesionOverlay.getBoundingClientRect();
+
+      if (activeEdit.mode === 'move') {
+        const x = clamp(((event.clientX - overlayRect.left) / overlayRect.width) * 100, 0, 100);
+        const y = clamp(((event.clientY - overlayRect.top) / overlayRect.height) * 100, 0, 100);
+        marker.x = x;
+        marker.y = y;
+        renderMarkers();
+        return;
+      }
+
+      if (activeEdit.mode === 'resize') {
+        const delta = Math.max(event.clientX - activeEdit.startX, event.clientY - activeEdit.startY);
+        const size = clamp(activeEdit.startSize + delta, 12, 220);
+        marker.size = size;
+        renderMarkers();
+      }
+    }
+
+    function pointerUp(event) {
+      if (activeEdit && activeEdit.pointerId === event.pointerId) {
+        activeEdit = null;
+      }
+    }
+
+    function saveImage() {
+      fetch(breastImages[activeSide].src)
+        .then((response) => response.blob())
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${breastImages[activeSide].label}.jpg`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+        })
+        .catch(() => {});
+    }
+
+    function buildReportText() {
+      const patientName = patientNameInput.value.trim() || '—';
+      const fgt = fgtSelect.value || '—';
+      const bpe = bpeSelect.value || '—';
+      const note = findingsNoteInput.value.trim() || '—';
+
+      const lesionsText = lesions.length
+        ? lesions.map((lesion) => {
+            const markerSummary = lesion.markers.length
+              ? lesion.markers
+                  .map((marker, index) => `марк ${index + 1}: ${Math.round(marker.x)}%, ${Math.round(marker.y)}%, Ø ${Math.round(marker.size)} px`)
+                  .join('; ')
+              : 'маркери не нанесені';
+            const name = lesion.name ? lesion.name : `Утворення ${lesion.id}`;
+            return `${name} — ${markerSummary}`;
+          }).join('\n')
+        : 'Немає утворів';
+
+      return `MRI Breast Report\n\nClinical Indication: —\n\nTechnique: Bilateral breast MRI performed. (MRI only; no comparison submitted.)\n\nPatient: ${patientName}\nFibroglandular Tissue (FGT) Amount: ${fgt}\nBackground Parenchymal Enhancement (BPE): ${bpe}\n\nFindings:\n${lesionsText}\n\nAdditional finding/comment: ${note}\n\nImpression / Final BI-RADS Assessment:\n- BI-RADS Category: [0 / 1 / 2 / 3 / 4 / 5 / 6]\n- Summary: [concise description of key findings and management recommendation.]\n\nRecommendation:\n- [routine screening / short-interval follow-up / biopsy / further evaluation].`;
+    }
+
+    function generateReport() {
+      reportPreview.textContent = buildReportText();
+    }
+
+    function clearAll() {
+      lesions = [];
+      nextLesionId = 1;
+      activeLesionId = null;
+      patientNameInput.value = '';
+      fgtSelect.value = '';
+      bpeSelect.value = '';
+      findingsNoteInput.value = '';
+      reportPreview.textContent = 'MRI Breast Report\n\nClinical Indication: —\n\nTechnique: Bilateral breast MRI performed. (MRI only; no comparison submitted.)\n\nPatient: —\nFibroglandular Tissue (FGT) Amount: —\nBackground Parenchymal Enhancement (BPE): —\n\nFindings:\nНемає утворів\n\nImpression / Final BI-RADS Assessment:\n- BI-RADS Category: [0 / 1 / 2 / 3 / 4 / 5 / 6]\n- Summary: [concise description of key findings and management recommendation.]\n\nRecommendation:\n- [routine screening / short-interval follow-up / biopsy / further evaluation].';
+      renderLesions();
+    }
+
+    document.querySelectorAll('.choice-card').forEach((card) => {
+      card.addEventListener('click', () => openDetail(card.dataset.side));
+    });
+
+    document.getElementById('backToSelection').addEventListener('click', backToSelection);
+    document.getElementById('addLesion').addEventListener('click', addLesion);
+    document.getElementById('addLesionSmall').addEventListener('click', addLesion);
+    document.getElementById('savePrimary').addEventListener('click', saveImage);
+    document.getElementById('generateReport').addEventListener('click', generateReport);
+    document.getElementById('clearAll').addEventListener('click', clearAll);
+
+    lesionOverlay.addEventListener('click', (event) => {
+      if (event.target.closest('.lesion-marker')) return;
+      if (!activeLesionId) {
+        alert('Спочатку оберіть утвір у списку або створіть новий.');
+        return;
+      }
+
       const rect = lesionOverlay.getBoundingClientRect();
-      const x = Math.min(100, Math.max(0, ((ev.clientX - rect.left)/rect.width)*100));
-      const y = Math.min(100, Math.max(0, ((ev.clientY - rect.top)/rect.height)*100));
-      addMarkerAtPoint(x,y);
+      const x = clamp(((event.clientX - rect.left) / rect.width) * 100, 0, 100);
+      const y = clamp(((event.clientY - rect.top) / rect.height) * 100, 0, 100);
+      addMarker(activeLesionId, x, y);
     });
 
-    function removeMarker(formationId, markerIndex){
-      const f = formations.find(x=>x.id===formationId); if(!f) return; f.markers.splice(markerIndex,1); renderMarkers();
-    }
+    document.addEventListener('pointermove', pointerMove);
+    document.addEventListener('pointerup', pointerUp);
+    document.addEventListener('pointercancel', pointerUp);
 
-    // pointer move/resize handling
-    function getMarkerTargetFromEvent(el){
-      const marker = el.closest('.lesion-marker'); if(!marker) return null;
-      return {el:marker, formationId: Number(marker.dataset.formationId), markerIndex: Number(marker.dataset.markerIndex)};
-    }
-
-    function markerPointerDown(ev){
-      if(ev.target.classList.contains('lesion-resize-handle')) return; ev.preventDefault(); const t = getMarkerTargetFromEvent(ev.target); if(!t) return;
-      ev.target.setPointerCapture?.(ev.pointerId);
-      activeEdit = {mode:'move', formationId: t.formationId, markerIndex: t.markerIndex, pointerId: ev.pointerId};
-    }
-    function markerResizeDown(ev){ ev.preventDefault(); ev.stopPropagation(); const t = getMarkerTargetFromEvent(ev.target); if(!t) return; const rect = ev.target.getBoundingClientRect(); ev.target.setPointerCapture?.(ev.pointerId); activeEdit = {mode:'resize', formationId:t.formationId, markerIndex:t.markerIndex, startX:ev.clientX, startY:ev.clientY, startSize: Number(document.querySelector(`.lesion-marker[data-formation-id='${t.formationId}'][data-marker-index='${t.markerIndex}']`).offsetWidth), pointerId: ev.pointerId}; }
-
-    function pointerMove(ev){ if(!activeEdit) return; const overlayRect = lesionOverlay.getBoundingClientRect(); const f = formations.find(x=>x.id===activeEdit.formationId); if(!f) return; if(activeEdit.mode==='move'){ const x = Math.min(100, Math.max(0, ((ev.clientX-overlayRect.left)/overlayRect.width)*100)); const y = Math.min(100, Math.max(0, ((ev.clientY-overlayRect.top)/overlayRect.height)*100)); f.markers[activeEdit.markerIndex].x = x; f.markers[activeEdit.markerIndex].y = y; renderMarkers(); } else if(activeEdit.mode==='resize'){ const delta = Math.max(ev.clientX - activeEdit.startX, ev.clientY - activeEdit.startY); const size = Math.min(220, Math.max(12, activeEdit.startSize + delta)); f.markers[activeEdit.markerIndex].size = size; renderMarkers(); } }
-    function pointerUp(ev){ if(activeEdit?.pointerId === ev.pointerId) activeEdit = null; }
-
-    document.addEventListener('pointermove', pointerMove); document.addEventListener('pointerup', pointerUp); document.addEventListener('pointercancel', pointerUp);
-
-    // Save image option exports base image file (no overlay compositing here)
-
-    // Report template and generation
-    const defaultReport = `MRI Breast Report\n\nClinical Indication: —\n\nTechnique: Bilateral breast MRI. (MRI only — no comparison)\n\nPatient: [name]\n\nFibroglandular Tissue (FGT) Amount: [select]\nBackground Parenchymal Enhancement (BPE): [select]\n\nFindings:\n\nRight Breast:\n- [description]\n\nLeft Breast:\n- [description]\n\nFormations:\n- [list]\n\nImpression / Final BI-RADS Assessment:\n- BI-RADS Category: [select]\n- Recommendation: [select]\n`;
-    reportPreview.textContent = defaultReport;
-
-    generateReportBtn.addEventListener('click', ()=>{
-      const name = document.getElementById('patientName').value.trim() || '—';
-      const fgt = document.getElementById('fgt').value || '—';
-      const bpe = document.getElementById('bpe').value || '—';
-      const formationsText = formations.map(f=>{
-        const markers = f.markers.map((m,i)=>`marker ${i+1}: (${Math.round(m.x)}%, ${Math.round(m.y)}%), size ${Math.round(m.size)}px`).join('; ');
-        return `${f.id}. ${f.name || '(назва)'} — ${markers || 'немає маркерів'}`;
-      }).join('\n');
-      const report = `MRI Breast Report\n\nClinical Indication: —\n\nTechnique: Bilateral breast MRI. (MRI only — no comparison)\n\nPatient: ${name}\n\nFibroglandular Tissue (FGT) Amount: ${fgt}\nBackground Parenchymal Enhancement (BPE): ${bpe}\n\nFindings:\n\n${formationsText || 'немає утворів'}\n\nImpression / Final BI-RADS Assessment:\n- BI-RADS Category: [select]\n- Recommendation: [select]\n`;
-      reportPreview.textContent = report;
-    });
-
-    clearBtn.addEventListener('click', ()=>{
-      document.getElementById('patientName').value=''; document.getElementById('fgt').value=''; document.getElementById('bpe').value=''; formations=[]; nextId=1; activeFormationId=null; renderFormations(); reportPreview.textContent = defaultReport;
-    });
-
-    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-    // initial
-    setSide('right'); renderFormations();
+    reportPreview.textContent = buildReportText();
   </script>
 </body>
 </html>
